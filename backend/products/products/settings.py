@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'products',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -53,9 +54,29 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'products.middleware.APILoggingMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'products.urls'
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_METHODS = [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS',  # Ensure OPTIONS is allowed for preflight
+]
+
+
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'Authorization',
+    'x-requested-with',
+    # Add any other headers you need
+]
 
 TEMPLATES = [
     {

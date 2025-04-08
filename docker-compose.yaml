@@ -27,6 +27,7 @@ services:
     command: npm run dev -- --host
     environment:
       - NODE_ENV=development
+      - VITE_API_URL=http://localhost:8003
 
   client:
     container_name: client_frontend

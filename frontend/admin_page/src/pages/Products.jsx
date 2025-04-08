@@ -1,17 +1,30 @@
-import React, { useState } from "react";
-import { Container, Table, Form } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import { Container, Table, Form, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-
-const dummyProducts = [
-  { id: 201, name: "Laptop", price: "$999.99", stock: "20" },
-  { id: 202, name: "Smartphone", price: "$499.50", stock: "35" },
-  { id: 203, name: "Headphones", price: "$79.99", stock: "50" },
-];
+import axios from "axios";
 
 export default function Products() {
+  const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
-  const filteredProducts = dummyProducts.filter(
+  // Fetch products from backend on component mount
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/products/`);
+        setProducts(response.data);  // Assuming the backend returns an array of products
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);  // Empty dependency array means this runs only once when the component mounts
+
+  // Filter products based on search input
+  const filteredProducts = products.filter(
     (product) =>
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.id.toString().includes(search)
@@ -21,7 +34,16 @@ export default function Products() {
     <div className="d-flex vh-100" style={{ backgroundColor: "#f8f1f1" }}>
       <Sidebar />
       <Container className="p-4">
-        <h1 className="mb-4">Products</h1>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1>Products</h1>
+          {/* Add Product Button */}
+          <Button
+            variant="primary"
+            onClick={() => navigate("/products/add")}
+          >
+            Add Product
+          </Button>
+        </div>
 
         {/* Search Bar */}
         <Form.Control
@@ -77,15 +99,15 @@ export default function Products() {
                 <td
                   style={{
                     color:
-                      product.stock > 30
+                      product.stock_quantity > 30
                         ? "green"
-                        : product.stock > 10
+                        : product.stock_quantity > 10
                         ? "orange"
                         : "red",
                     fontWeight: "bold",
                   }}
                 >
-                  {product.stock}
+                  {product.stock_quantity}
                 </td>
               </tr>
             ))}
