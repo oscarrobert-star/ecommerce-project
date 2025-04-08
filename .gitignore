@@ -1,0 +1,76 @@
+# Node modules
+node_modules/
+
+# Vite & React build output
+dist/
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.env
+.venv/
+venv/
+env/
+ENV/
+
+# Virtualenvs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# dotenv
+.env*
+!.env.example
+
+# Log files
+*.log
+*.log.*
+
+# SQLite / DB
+*.sqlite3
+*.db
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# VSCode
+.vscode/
+
+# JetBrains IDEs (PyCharm, WebStorm, etc.)
+.idea/
+
+# Docker
+**/Dockerfile
+docker-compose.override.yml
+.dockerignore
+
+# Git
+*.orig
+
+# Coverage reports
+htmlcov/
+coverage.xml
+*.cover
+*.py,cover
+
+# Test outputs
+.tox/
+.nox/
+.pytest_cache/
+nosetests.xml
+test-results.xml
+junit-*.xml
+
+# Misc
+*.swp
