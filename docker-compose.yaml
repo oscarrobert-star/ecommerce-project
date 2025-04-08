@@ -1,0 +1,103 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: ecommerce_user
+      POSTGRES_PASSWORD: strongpassword
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  admin:
+    container_name: admin_frontend
+    build:
+      context: ./frontend/admin_page
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/admin_page:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run dev -- --host
+    environment:
+      - NODE_ENV=development
+
+  client:
+    container_name: client_frontend
+    build:
+      context: ./frontend/client_page
+      dockerfile: Dockerfile
+    ports:
+      - "5174:5173"
+    volumes:
+      - ./frontend/client_page:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run dev -- --host
+    environment:
+      - NODE_ENV=development
+
+  # auth-service:
+  #   build: ./backend/auth-service
+  #   container_name: auth-service
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   volumes:
+  #     - ./backend/auth-service:/app
+  #   ports:
+  #     - "8001:8000"
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
+
+  # order-service:
+  #   build: ./backend/order-service
+  #   container_name: order-service
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   volumes:
+  #     - ./backend/order-service:/app
+  #   ports:
+  #     - "8002:8000"
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
+
+  product-service:
+    build: ./backend/products
+    container_name: product-service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/products:/app
+    ports:
+      - "8003:8000"
+    depends_on:
+      - postgres
+    environment:
+      - DB_NAME=ecommerce
+      - DB_USER=ecommerce_user
+      - DB_PASSWORD=strongpassword
+      - DB_HOST=postgres  
+      - DB_PORT=5432
+
+  # user-service:
+  #   build: ./backend/user-service
+  #   container_name: user-service
+  #   command: python manage.py runserver 0.0.0.0:8000
+  #   volumes:
+  #     - ./backend/user-service:/app
+  #   ports:
+  #     - "8004:8000"
+  #   depends_on:
+  #     - postgres
+  #   environment:
+  #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
+
+volumes:
+  pgdata:
