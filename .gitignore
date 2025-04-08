@@ -16,7 +16,8 @@ __pycache__/
 venv/
 env/
 ENV/
-
+backend/env/*
+backend/.env
 # Virtualenvs
 pip-log.txt
 pip-delete-this-directory.txt
