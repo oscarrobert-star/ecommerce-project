@@ -57,18 +57,22 @@ services:
   #   environment:
   #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
 
-  # order-service:
-  #   build: ./backend/order-service
-  #   container_name: order-service
-  #   command: python manage.py runserver 0.0.0.0:8000
-  #   volumes:
-  #     - ./backend/order-service:/app
-  #   ports:
-  #     - "8002:8000"
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
+  order-service:
+    build: ./backend/orders
+    container_name: order-service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/orders:/app
+    ports:
+      - "8002:8000"
+    depends_on:
+      - postgres
+    environment:
+      - DB_NAME=ecommerce
+      - DB_USER=ecommerce_user
+      - DB_PASSWORD=strongpassword
+      - DB_HOST=postgres  
+      - DB_PORT=5432
 
   product-service:
     build: ./backend/products
