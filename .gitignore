@@ -75,3 +75,17 @@ junit-*.xml
 
 # Misc
 *.swp
+
+
+# Terraform directories and state
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+terraform.tfvars.json
