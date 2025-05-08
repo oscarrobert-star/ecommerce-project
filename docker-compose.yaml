@@ -28,6 +28,7 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://localhost:8003
+      - VITE_AUTH_API_URL=http://localhost:8004
 
   client:
     container_name: client_frontend
@@ -43,6 +44,7 @@ services:
     command: npm run dev -- --host
     environment:
       - NODE_ENV=development
+      - VITE_AUTH_API_URL=http://localhost:8004
 
   # auth-service:
   #   build: ./backend/auth-service
@@ -91,18 +93,23 @@ services:
       - DB_HOST=postgres  
       - DB_PORT=5432
 
-  # user-service:
-  #   build: ./backend/user-service
-  #   container_name: user-service
-  #   command: python manage.py runserver 0.0.0.0:8000
-  #   volumes:
-  #     - ./backend/user-service:/app
-  #   ports:
-  #     - "8004:8000"
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
+  user-service:
+    build: ./backend/users
+    container_name: user-service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/users:/app
+      - ~/.aws:/root/.aws:ro
+    ports:
+      - "8004:8000"
+    depends_on:
+      - postgres
+    environment:
+      - DB_NAME=ecommerce
+      - DB_USER=ecommerce_user
+      - DB_PASSWORD=strongpassword
+      - DB_HOST=postgres  
+      - DB_PORT=5432
 
 volumes:
   pgdata:

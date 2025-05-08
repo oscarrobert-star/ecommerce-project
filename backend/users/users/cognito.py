@@ -1,10 +1,14 @@
 import boto3
+import logging
 from django.conf import settings
 from botocore.exceptions import ClientError
+
+logger = logging.getLogger(__name__)
 
 client = boto3.client('cognito-idp', region_name=settings.AWS_COGNITO_REGION)
 
 def signup_user(username, password, email):
+    logger.info(f"Signup attempt - Username: {username}, Email: {email}")
     try:
         response = client.sign_up(
             ClientId=settings.AWS_COGNITO_CLIENT_ID,
@@ -14,22 +18,28 @@ def signup_user(username, password, email):
                 {'Name': 'email', 'Value': email},
             ]
         )
+        logger.info(f"Signup successful for Username: {username}")
         return response
     except ClientError as e:
+        logger.error(f"Signup failed for Username: {username} - Error: {e}")
         return {"error": str(e)}
 
 def confirm_signup(username, confirmation_code):
+    logger.info(f"Confirm signup attempt - Username: {username}")
     try:
         response = client.confirm_sign_up(
             ClientId=settings.AWS_COGNITO_CLIENT_ID,
             Username=username,
             ConfirmationCode=confirmation_code,
         )
+        logger.info(f"Confirm signup successful for Username: {username}")
         return response
     except ClientError as e:
+        logger.error(f"Confirm signup failed for Username: {username} - Error: {e}")
         return {"error": str(e)}
 
 def login_user(username, password, new_password=None):
+    logger.info(f"Login attempt - Username: {username}")
     try:
         client = boto3.client('cognito-idp', region_name=settings.AWS_COGNITO_REGION)
 
@@ -44,7 +54,9 @@ def login_user(username, password, new_password=None):
         )
 
         if response.get("ChallengeName") == "NEW_PASSWORD_REQUIRED":
+            logger.info(f"New password challenge for Username: {username}")
             if not new_password:
+                logger.warning(f"New password required but not provided for Username: {username}")
                 return {"error": "New password required", "challenge": "NEW_PASSWORD_REQUIRED"}
 
             challenge_response = client.respond_to_auth_challenge(
@@ -57,6 +69,7 @@ def login_user(username, password, new_password=None):
                 Session=response['Session']
             )
 
+            logger.info(f"Password changed and login successful for Username: {username}")
             return {
                 "message": "Password changed & logged in",
                 "id_token": challenge_response['AuthenticationResult']['IdToken'],
@@ -64,7 +77,7 @@ def login_user(username, password, new_password=None):
                 "refresh_token": challenge_response['AuthenticationResult']['RefreshToken']
             }
 
-        # If no challenge, return tokens as usual
+        logger.info(f"Login successful for Username: {username}")
         return {
             "id_token": response['AuthenticationResult']['IdToken'],
             "access_token": response['AuthenticationResult']['AccessToken'],
@@ -72,11 +85,29 @@ def login_user(username, password, new_password=None):
         }
 
     except client.exceptions.NotAuthorizedException:
+        logger.warning(f"Login failed - Incorrect username or password for Username: {username}")
         return {"error": "Incorrect username or password"}
     except client.exceptions.UserNotConfirmedException:
+        logger.warning(f"Login failed - User not confirmed for Username: {username}")
         return {"error": "User not confirmed. Check your email."}
     except client.exceptions.UserNotFoundException:
+        logger.warning(f"Login failed - User not found: {username}")
         return {"error": "User does not exist"}
     except Exception as e:
+        logger.error(f"Unexpected error during login for Username: {username} - Error: {e}")
         return {"error": str(e)}
 
+def logout_user(access_token):
+    logger.info(f"Logout attempt with Access Token: {access_token}")
+    try:
+        response = client.global_sign_out(
+            AccessToken=access_token
+        )
+        logger.info(f"Logout successful for Access Token: {access_token}")
+        return {"message": "Logout successful"}
+    except ClientError as e:
+        logger.error(f"Logout failed - Error: {e}")
+        return {"error": str(e)}
+    except Exception as e:
+        logger.error(f"Unexpected error during logout - Error: {e}")
+        return {"error": str(e)}

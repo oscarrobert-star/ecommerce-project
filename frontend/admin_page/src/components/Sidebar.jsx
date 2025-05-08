@@ -6,11 +6,45 @@ import { Button } from "react-bootstrap";
 export default function Sidebar() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Placeholder for clearing auth session (e.g., remove token)
-    console.log("User logged out");
-    navigate("/login"); // Redirect to login
+  const handleLogout = async () => {
+    try {
+      const accessToken = localStorage.getItem("access_token");
+  
+      if (!accessToken) {
+        console.error("No access token found.");
+        navigate("/login");
+        return;
+      }
+  
+      const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/users/logout/`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error("Logout request failed");
+      }
+  
+      // Clear local storage tokens
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("id_token");
+      localStorage.removeItem("refresh_token");
+  
+      console.log("User logged out successfully.");
+      navigate("/login"); // Redirect to login page
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if logout API call fails, still clear tokens and redirect
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("id_token");
+      localStorage.removeItem("refresh_token");
+      navigate("/login");
+    }
   };
+  
 
   return (
     <div className="bg-dark text-white p-4 d-flex flex-column" style={{ width: "250px", height: "100vh" }}>

@@ -52,7 +52,7 @@ Desktop.ini
 .idea/
 
 # Docker
-**/Dockerfile
+# **/Dockerfile
 docker-compose.override.yml
 .dockerignore
 

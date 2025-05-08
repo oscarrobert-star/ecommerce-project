@@ -23,6 +23,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Customers from "./pages/Customers"; 
 import AddProduct from "./pages/AddProduct";
+import ConfirmSignup from "./pages/ConfirmSignup";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -37,6 +38,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/signup" element={<Signup />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/products/add" element={<AddProduct />} />
+        <Route path="/confirm-signup" element={<ConfirmSignup />} />
       </Routes>
     </Router>
   </React.StrictMode>
