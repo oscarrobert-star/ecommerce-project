@@ -13,6 +13,15 @@ services:
     ports:
       - "5432:5432"
 
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
   admin:
     container_name: admin_frontend
     build:
@@ -111,5 +120,43 @@ services:
       - DB_HOST=postgres  
       - DB_PORT=5432
 
+  payment-service:
+    build: ./backend/payments
+    container_name: payment-service
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8005:8000"
+    depends_on:
+      - postgres
+    environment:
+      - DB_NAME=ecommerce
+      - DB_USER=ecommerce_user
+      - DB_PASSWORD=strongpassword
+      - DB_HOST=postgres  
+      - DB_PORT=5432    
+      - PAYSTACK_SECRET_KEY=sk_test_3d3a69512e465c85fb29b3bedc14ab77d6b943ae
+      - PAYMENT_CALLBACK=https://da94-197-248-143-155.ngrok-free.app
+
+  cart-service:
+    build: ./backend/cart
+    container_name: cart-service
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8006:8000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # - REDIS_DB=0
+      # - REDIS_PASSWORD=
+      # - DB_NAME=ecommerce
+      # - DB_USER=ecommerce_user
+      # - DB_PASSWORD=strongpassword
+      # - DB_HOST=postgres  
+      # - DB_PORT=5432  
+      - CART_TTL_SECONDS=180
+
 volumes:
   pgdata:
+  redisdata:

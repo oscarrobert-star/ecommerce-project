@@ -33,7 +33,7 @@ shipping_detail = OrderViewSet.as_view({
 
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls),
     path("", include(router.urls)),
     path("orders/<str:pk>/payment_status/", order_detail, name="order-payment-status"),
     path("orders/<str:pk>/shipping_status/", shipping_detail, name="order-shipping-status"),
