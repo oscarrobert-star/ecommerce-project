@@ -79,13 +79,12 @@ def webhook(request):
                     # Replace ORDERS_SERVICE_URL with your actual orders service endpoint
                     ORDERS_SERVICE_URL = os.getenv("ORDERS_SERVICE_URL")
                     payload = {
-                        "order_id": order_id,
                         "payment_status": "paid",
                         "payment_reference": reference,
                     }
                     headers = {"Content-Type": "application/json"}
                     resp = requests.post(
-                        f"{ORDERS_SERVICE_URL}/orders/update-payment-status/",
+                        f"{ORDERS_SERVICE_URL}/orders/{order_id}/update-payment-status/",
                         json=payload,
                         headers=headers,
                         timeout=5,

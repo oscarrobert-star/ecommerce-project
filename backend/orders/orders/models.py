@@ -15,6 +15,13 @@ class Order(models.Model):
     ], default="pending")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    payment_reference = models.CharField(max_length=255, blank=True, null=True)  # from payment service
+
+    class Meta:
+        db_table = 'orders'
+
+    def __str__(self):
+        return self.name
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
@@ -22,3 +29,9 @@ class OrderItem(models.Model):
     product_name = models.CharField(max_length=255)
     quantity = models.IntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)  # price at time of purchase
+
+    class Meta:
+        db_table = 'order_items'
+
+    def __str__(self):
+        return self.name

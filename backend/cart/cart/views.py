@@ -19,8 +19,8 @@
 
 # @csrf_exempt
 # @require_http_methods(["DELETE"])
-# def remove_item(request, user_id, item_id):
-#     remove_from_cart(user_id, item_id)
+# def remove_item(request, user_id, product_id):
+#     remove_from_cart(user_id, product_id)
 #     return JsonResponse({"message": "Item removed"})
 
 # @csrf_exempt
@@ -50,69 +50,123 @@ def add_to_cart(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST allowed'}, status=405)
 
-    cart_id = get_cart_id(request)
-    data = json.loads(request.body)
-    item_id = str(data.get('item_id'))
-    quantity = int(data.get('quantity', 1))
+    try:
+        cart_id = get_cart_id(request)
+        data = json.loads(request.body)
+        product_id = str(data.get('product_id'))
+        quantity = int(data.get('quantity', 1))
+        product_name = str(data.get('product_name'))
+        price = str(data.get('price'))
 
-    redis_key = f"cart:{cart_id}"
-    redis_client.hincrby(redis_key, item_id, quantity)
-    redis_client.expire(redis_key, getattr(settings, "CART_TTL_SECONDS", 300))
-    logging.info(f"Item {item_id} added to cart {cart_id} with quantity {quantity}")
-    return JsonResponse({'message': 'Item added', 'cart_id': cart_id})
+        redis_key = f"cart:{cart_id}"
+        # If the product already exists, update quantity
+        existing_item = redis_client.hget(redis_key, product_id)
+        if existing_item:
+            existing_item_data = json.loads(existing_item)
+            quantity += int(existing_item_data.get('quantity', 0))
+
+        item_data = {
+            "product_id": product_id,
+            "product_name": product_name,
+            "quantity": quantity,
+            "price": price,
+        }
+
+        redis_client.hset(redis_key, product_id, json.dumps(item_data))
+        redis_client.expire(redis_key, getattr(settings, "CART_TTL_SECONDS", 300))
+
+        logging.info(f"Item {product_id} added to cart {cart_id} with quantity {quantity}")
+        return JsonResponse({'message': 'Item added', 'cart_id': cart_id})
+
+    except Exception as e:
+        logging.exception("Failed to add item to cart")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 def get_cart(request):
     cart_id = get_cart_id(request)
     redis_key = f"cart:{cart_id}"
-    items = redis_client.hgetall(redis_key)
-    logging.info(f"Cart {cart_id} retrieved with items: {items}")
-    if not items:
+    raw_items = redis_client.hgetall(redis_key)
+
+    if not raw_items:
         return JsonResponse({'message': 'Cart is empty'}, status=404)
+
+    items = []
+    for item_json in raw_items.values():
+        try:
+            items.append(json.loads(item_json))
+        except Exception:
+            continue
+
+    logging.info(f"Cart {cart_id} retrieved with items: {items}")
     return JsonResponse({'cart_id': cart_id, 'items': items})
+
 
 @csrf_exempt
 def remove_from_cart(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST allowed'}, status=405)
 
-    cart_id = get_cart_id(request)
-    data = json.loads(request.body)
-    item_id = str(data.get('item_id'))
+    try:
+        cart_id = get_cart_id(request)
+        data = json.loads(request.body)
+        product_id = str(data.get('product_id'))
 
-    redis_key = f"cart:{cart_id}"
-    redis_client.hdel(redis_key, item_id)
-    logging.info(f"Item {item_id} removed from cart {cart_id}")
-    return JsonResponse({'message': 'Item removed', 'cart_id': cart_id})
+        redis_key = f"cart:{cart_id}"
+        redis_client.hdel(redis_key, product_id)
+        logging.info(f"Item {product_id} removed from cart {cart_id}")
+        return JsonResponse({'message': 'Item removed', 'cart_id': cart_id})
+    except Exception as e:
+        logging.exception("Failed to remove item from cart")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 def clear_cart(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST allowed'}, status=405)
 
-    cart_id = get_cart_id(request)
-    redis_key = f"cart:{cart_id}"
-    redis_client.delete(redis_key)
-    logging.info(f"Cart {cart_id} cleared")
-    return JsonResponse({'message': 'Cart cleared', 'cart_id': cart_id})
+    try:
+        cart_id = get_cart_id(request)
+        redis_key = f"cart:{cart_id}"
+        redis_client.delete(redis_key)
+        logging.info(f"Cart {cart_id} cleared")
+        return JsonResponse({'message': 'Cart cleared', 'cart_id': cart_id})
+    except Exception as e:
+        logging.exception("Failed to clear cart")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @csrf_exempt
 def edit_item_quantity(request):
     if request.method != 'PATCH':
         return JsonResponse({'error': 'Only PATCH allowed'}, status=405)
 
-    cart_id = get_cart_id(request)
-    data = json.loads(request.body)
-    item_id = str(data.get('item_id'))
-    quantity = int(data.get('quantity', 1))
+    try:
+        cart_id = get_cart_id(request)
+        data = json.loads(request.body)
+        product_id = str(data.get('product_id'))
+        quantity = int(data.get('quantity', 1))
 
-    redis_key = f"cart:{cart_id}"
+        redis_key = f"cart:{cart_id}"
+        item_json = redis_client.hget(redis_key, product_id)
 
-    if quantity <= 0:
-        redis_client.hdel(redis_key, item_id)
-        logging.info(f"Item {item_id} removed from cart {cart_id} due to non-positive quantity")
-        return JsonResponse({'message': 'Item removed due to non-positive quantity', 'cart_id': cart_id})
+        if not item_json:
+            return JsonResponse({'error': 'Item not found in cart'}, status=404)
 
-    redis_client.hset(redis_key, item_id, quantity)
-    redis_client.expire(redis_key, getattr(settings, "CART_TTL_SECONDS", 300))
-    logging.info(f"Item {item_id} quantity updated to {quantity} in cart {cart_id}")
-    return JsonResponse({'message': 'Item quantity updated', 'cart_id': cart_id})
+        if quantity <= 0:
+            redis_client.hdel(redis_key, product_id)
+            logging.info(f"Item {product_id} removed from cart {cart_id} due to non-positive quantity")
+            return JsonResponse({'message': 'Item removed due to non-positive quantity', 'cart_id': cart_id})
+
+        item = json.loads(item_json)
+        item['quantity'] = quantity
+
+        redis_client.hset(redis_key, product_id, json.dumps(item))
+        redis_client.expire(redis_key, getattr(settings, "CART_TTL_SECONDS", 300))
+        logging.info(f"Item {product_id} quantity updated to {quantity} in cart {cart_id}")
+        return JsonResponse({'message': 'Item quantity updated', 'cart_id': cart_id})
+    except Exception as e:
+        logging.exception("Failed to update item quantity")
+        return JsonResponse({'error': str(e)}, status=500)
+

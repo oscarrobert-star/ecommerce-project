@@ -71,11 +71,11 @@ services:
   order-service:
     build: ./backend/orders
     container_name: order-service
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
     volumes:
       - ./backend/orders:/app
     ports:
-      - "8002:8000"
+      - "8002:8002"
     depends_on:
       - postgres
     environment:
@@ -88,11 +88,11 @@ services:
   product-service:
     build: ./backend/products
     container_name: product-service
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8003"
     volumes:
       - ./backend/products:/app
     ports:
-      - "8003:8000"
+      - "8003:8003"
     depends_on:
       - postgres
     environment:
@@ -105,12 +105,12 @@ services:
   user-service:
     build: ./backend/users
     container_name: user-service
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8004"
     volumes:
       - ./backend/users:/app
       - ~/.aws:/root/.aws:ro
     ports:
-      - "8004:8000"
+      - "8004:8004"
     depends_on:
       - postgres
     environment:
@@ -123,9 +123,9 @@ services:
   payment-service:
     build: ./backend/payments
     container_name: payment-service
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8005
     ports:
-      - "8005:8000"
+      - "8005:8005"
     depends_on:
       - postgres
     environment:
@@ -140,22 +140,28 @@ services:
   cart-service:
     build: ./backend/cart
     container_name: cart-service
-    command: python manage.py runserver 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8006
     ports:
-      - "8006:8000"
+      - "8006:8006"
     depends_on:
       - redis
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # - REDIS_DB=0
-      # - REDIS_PASSWORD=
-      # - DB_NAME=ecommerce
-      # - DB_USER=ecommerce_user
-      # - DB_PASSWORD=strongpassword
-      # - DB_HOST=postgres  
-      # - DB_PORT=5432  
       - CART_TTL_SECONDS=180
+
+  checkout-service:
+    build: ./backend/checkout
+    container_name: checkout-service
+    command: python manage.py runserver 0.0.0.0:8007
+    ports:
+      - "8007:8007"
+    environment:
+      - ORDERS_SERVICE_URL=http://order-service:8002
+      - PAYMENT_SERVICE_URL=http://payment-service:8005
+    depends_on:
+      - order-service
+      - payment-service  
 
 volumes:
   pgdata:

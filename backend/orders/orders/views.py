@@ -22,20 +22,31 @@ class OrderViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         logger.info("POST /orders - Creating new order")
         response = super().create(request, *args, **kwargs)
-        logger.info(f"Order created with ID: {response.data.get('id')}")
-        return response
+        order_id = response.data.get('id')
+        logger.info(f"Order created with ID: {order_id}")
+        return Response({"id": order_id}, status=response.status_code)
 
     def update_payment_status(self, request, pk=None):
         logger.info(f"PATCH /orders/{pk}/payment_status - Updating payment status")
         order = self.get_object()
         status_value = request.data.get("payment_status")
-        if status_value in dict(Order._meta.get_field('payment_status').choices):
-            order.payment_status = status_value
-            order.save()
-            logger.info(f"Payment status updated to '{status_value}' for order {order.id}")
-            return Response({"status": "payment status updated"})
-        logger.error(f"Invalid payment status '{status_value}' for order {order.id}")
-        return Response({"error": "Invalid status"}, status=400)
+        payment_ref = request.data.get("payment_reference")
+
+        valid_statuses = dict(Order._meta.get_field('payment_status').choices)
+
+        if status_value not in valid_statuses:
+            logger.error(f"Invalid payment status '{status_value}' for order {order.id}")
+            return Response({"error": "Invalid status"}, status=400)
+
+        order.payment_status = status_value
+        if payment_ref:
+            order.payment_reference = payment_ref
+            logger.info(f"Payment reference '{payment_ref}' set for order {order.id}")
+
+        order.save()
+        logger.info(f"Payment status updated to '{status_value}' for order {order.id}")
+        return Response({"status": "payment status updated", "payment_reference": order.payment_reference})
+
 
     def update_shipping_status(self, request, pk=None):
         logger.info(f"PATCH /orders/{pk}/shipping_status - Updating shipping status")
