@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -51,12 +53,13 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'orders.urls'
 
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOW_ALL_ORIGINS = True
+
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = [
     'GET',
@@ -68,11 +71,18 @@ CORS_ALLOW_METHODS = [
 ]
 
 
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'Authorization',
-    'x-requested-with',
-    # Add any other headers you need
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-cart-id',  
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://client.localhost",  
+    "http://admin.localhost",  
+] 
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://client.localhost",  
+    "http://admin.localhost", 
 ]
 
 TEMPLATES = [
