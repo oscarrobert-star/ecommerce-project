@@ -6,6 +6,7 @@ import NotFoundPage from "./pages/NotFoundPage"; // Optional for 404 handling
 import ProductDetails from "./pages/ProductDetails";
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
 
 export default function App() {
   return (
@@ -17,6 +18,8 @@ export default function App() {
       <Route path="/product/:id" element={<ProductDetails />} />
       <Route path="/cart" element={<CartPage />} />
       <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/order-confirmation" element={<OrderConfirmationPage />} />
+      {/* Add more routes as needed */}
     </Routes>
   );
 }

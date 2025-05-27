@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Form, Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import "../assets/css/homepage.css";
@@ -23,37 +23,67 @@ const newArrivals = [
     { id: 7, name: "4K Smart TV", description: "Ultra HD entertainment.", price: 1199.99, image: laptopImg, category: "Laptops" },
 ];
 
+function getOrCreateCartId() {
+    let cartId = localStorage.getItem("cart_id");
+    if (!cartId) {
+        cartId = crypto.randomUUID();
+        localStorage.setItem("cart_id", cartId);
+    }
+    return cartId;
+}
+
 export default function HomePage() {
     const navigate = useNavigate();
     const [search, setSearch] = useState("");
     const [cart, setCart] = useState([]);
     const featuredRef = useRef(null);
 
-    const filteredProducts = productsList.filter((product) => {
-        return product.name.toLowerCase().includes(search.toLowerCase()) || 
-               product.description.toLowerCase().includes(search.toLowerCase());
-    });
+    useEffect(() => {
+        getOrCreateCartId(); // Ensure cart_id exists on page load
+    }, []);
 
-    // const addToCart = (product) => {
-    //     setCart((prevCart) => [...prevCart, product]);
-    // };
-    const addToCart = (product) => {
-        let updatedCart = [...cart];
-        const existingProductIndex = updatedCart.findIndex(item => item.id === product.id);
-    
-        if (existingProductIndex !== -1) {
-            // If product already exists in cart, increase quantity
-            updatedCart[existingProductIndex].quantity += 1;
-        } else {
-            // If product doesn't exist, add it with quantity 1
-            updatedCart.push({ ...product, quantity: 1 });
+    const filteredProducts = productsList.filter((product) =>
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.description.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const addToCart = async (product) => {
+        const cartItem = {
+            product_id: product.id,
+            product_name: product.name,
+            quantity: 1,
+            price: product.price.toFixed(2),
+        };
+
+        const cartId = getOrCreateCartId();
+
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart/add/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Cart-ID": cartId,
+                },
+                body: JSON.stringify(cartItem),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to add item to cart.");
+            }
+
+            const updatedCart = [...cart];
+            const index = updatedCart.findIndex(item => item.product_id === cartItem.product_id);
+            if (index !== -1) {
+                updatedCart[index].quantity += 1;
+            } else {
+                updatedCart.push(cartItem);
+            }
+            setCart(updatedCart);
+            localStorage.setItem("cart", JSON.stringify(updatedCart));
+        } catch (error) {
+            console.error("Error adding to cart:", error);
         }
-    
-        setCart(updatedCart);
-        localStorage.setItem("cart", JSON.stringify(updatedCart));  // Save updated cart to localStorage
     };
-    
-    
 
     const viewCart = () => {
         navigate("/cart");
@@ -74,15 +104,14 @@ export default function HomePage() {
             </section>
 
             <Container className="p-4">
-                <Form.Control 
-                    type="text" 
-                    placeholder="Search for products..." 
-                    className="mb-4 mx-auto search-bar" 
-                    value={search} 
-                    onChange={(e) => setSearch(e.target.value)} 
+                <Form.Control
+                    type="text"
+                    placeholder="Search for products..."
+                    className="mb-4 mx-auto search-bar"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
                 />
 
-                {/* Cart Icon with Badge */}
                 <Button variant="outline-dark" onClick={viewCart} className="position-relative">
                     View Cart
                     {cart.length > 0 && (

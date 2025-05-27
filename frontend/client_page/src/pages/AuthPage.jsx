@@ -35,7 +35,7 @@ export default function AuthPage() {
       }
 
       const response = await axios.post(
-        `${import.meta.env.VITE_AUTH_API_URL}/users/login/`,
+        `${import.meta.env.VITE_BASE_URL}/users/login/`,
         payload,
         {
           headers: { "Content-Type": "application/json" },
@@ -67,7 +67,7 @@ export default function AuthPage() {
     setErrorMessage("");
 
     try {
-      await axios.post(`${import.meta.env.VITE_AUTH_API_URL}/users/signup/`, {
+      await axios.post(`${import.meta.env.VITE_BASE_URL}/users/signup/`, {
         username: formData.email,
         password: formData.password,
         email: formData.email,

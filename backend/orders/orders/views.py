@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from .models import Order
 from .serializers import OrderSerializer
 import logging
+import time
+from rest_framework.decorators import action
 
 logger = logging.getLogger("order_service")
 
@@ -60,3 +62,37 @@ class OrderViewSet(viewsets.ModelViewSet):
         logger.error(f"Invalid shipping status '{status_value}' for order {order.id}")
         return Response({"error": "Invalid status"}, status=400)
 
+    # @action(detail=False, methods=["get"], url_path="status/(?P<reference>[^/.]+)")
+    # def order_status_by_reference(self, request, reference=None):
+    #     logger.info(f"GET /orders/status/{reference} - Fetching order by payment reference")
+
+    #     max_retries = 3
+    #     delay = 2  # seconds
+
+    #     for attempt in range(1, max_retries + 1):
+    #         try:
+    #             order = Order.objects.get(payment_reference=reference)
+    #             serializer = self.get_serializer(order)
+    #             logger.info(f"Order {order.id} retrieved on attempt {attempt} for payment reference '{reference}'")
+    #             return Response(serializer.data, status=status.HTTP_200_OK)
+    #         except Order.DoesNotExist:
+    #             logger.warning(f"Attempt {attempt}: Order with payment reference '{reference}' not found")
+    #             if attempt < max_retries:
+    #                 logger.info(f"Retrying in {delay} seconds...")
+    #                 time.sleep(delay)
+    #             else:
+    #                 logger.error(f"Order with payment reference '{reference}' not found after {max_retries} attempts")
+    #                 return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=False, methods=["get"], url_path="status/(?P<reference>[^/.]+)")
+    def order_status_by_reference(self, request, reference=None):
+        logger.info(f"GET /orders/status/{reference} - Fetching order by payment reference")
+
+        try:
+            order = Order.objects.get(payment_reference=reference)
+            serializer = self.get_serializer(order)
+            logger.info(f"Order {order.id} retrieved for payment reference '{reference}'")
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            logger.error(f"Order with payment reference '{reference}' not found")
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)

@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from corsheaders.defaults import default_headers
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,7 +30,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-cart-id',  
+]
 
 CORS_ALLOW_METHODS = [
     'GET',
@@ -38,12 +42,30 @@ CORS_ALLOW_METHODS = [
     'DELETE',
     'OPTIONS',  # Ensure OPTIONS is allowed for preflight
 ]
+# CORS_ALLOW_ALL_ORIGINS = False
 
-CORS_ALLOW_HEADERS = [
-    'content-type',
-    'Authorization',
-    'x-requested-with',
-    # Add any other headers you need
+# CORS_ALLOW_HEADERS = list(default_headers) + [
+#     'x-cart-id',
+# ]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_ORIGINS = [
+    # "http://localhost:5173",
+    # "http://localhost:5174",
+    # "http://127.0.0.1:5173",
+    # "http://127.0.0.1:5174",
+    "http://client.localhost",  # your React frontend
+    "http://admin.localhost",  # your Django admin frontend
+] 
+
+CSRF_TRUSTED_ORIGINS = [
+    # "http://localhost:5173",
+    # "http://localhost:5174",
+    # "http://127.0.0.1:5173",
+    # "http://127.0.0.1:5174",
+    "http://client.localhost",  # your React frontend
+    "http://admin.localhost", 
 ]
 
 # Application definition
@@ -60,6 +82,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -67,7 +90,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'cart.urls'

@@ -1,6 +1,19 @@
 version: '3.9'
 
 services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
   postgres:
     image: postgres:15
     container_name: postgres
@@ -27,8 +40,6 @@ services:
     build:
       context: ./frontend/admin_page
       dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
     volumes:
       - ./frontend/admin_page:/app
       - /app/node_modules
@@ -36,16 +47,18 @@ services:
     command: npm run dev -- --host
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8003
-      - VITE_AUTH_API_URL=http://localhost:8004
+      - VITE_API_URL=http://api.localhost/products
+      - VITE_AUTH_API_URL=http://api.localhost/users
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.localhost`)"
+      - "traefik.http.services.admin.loadbalancer.server.port=5173"
 
   client:
     container_name: client_frontend
     build:
       context: ./frontend/client_page
       dockerfile: Dockerfile
-    ports:
-      - "5174:5173"
     volumes:
       - ./frontend/client_page:/app
       - /app/node_modules
@@ -53,29 +66,23 @@ services:
     command: npm run dev -- --host
     environment:
       - NODE_ENV=development
-      - VITE_AUTH_API_URL=http://localhost:8004
-
-  # auth-service:
-  #   build: ./backend/auth-service
-  #   container_name: auth-service
-  #   command: python manage.py runserver 0.0.0.0:8000
-  #   volumes:
-  #     - ./backend/auth-service:/app
-  #   ports:
-  #     - "8001:8000"
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     - DATABASE_URL=postgres://ecommerce_user:strongpassword@postgres:5432/ecommerce
+      - VITE_AUTH_API_URL=http://api.localhost/users
+      - VITE_CART_URL=http://api.localhost/cart
+      - VITE_CHECKOUT_URL=http://api.localhost/checkout
+      - VITE_BASE_URL=http://api.localhost
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.client.rule=Host(`client.localhost`)"
+      - "traefik.http.services.client.loadbalancer.server.port=5173"
 
   order-service:
     build: ./backend/orders
     container_name: order-service
-    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend/orders:/app
     ports:
-      - "8002:8002"
+      - "8000:8000"  
     depends_on:
       - postgres
     environment:
@@ -84,15 +91,19 @@ services:
       - DB_PASSWORD=strongpassword
       - DB_HOST=postgres  
       - DB_PORT=5432
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orders.rule=Host(`api.localhost`) && PathPrefix(`/orders`)"
+      - "traefik.http.routers.orders.middlewares=orders-stripprefix"
+      - "traefik.http.middlewares.orders-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.orders.loadbalancer.server.port=8000"
 
   product-service:
     build: ./backend/products
     container_name: product-service
-    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8003"
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend/products:/app
-    ports:
-      - "8003:8003"
     depends_on:
       - postgres
     environment:
@@ -101,16 +112,20 @@ services:
       - DB_PASSWORD=strongpassword
       - DB_HOST=postgres  
       - DB_PORT=5432
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.products.rule=Host(`api.localhost`) && PathPrefix(`/products`)"
+      - "traefik.http.routers.products.middlewares=products-stripprefix"
+      - "traefik.http.middlewares.products-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.products.loadbalancer.server.port=8000"
 
   user-service:
     build: ./backend/users
     container_name: user-service
-    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8004"
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend/users:/app
       - ~/.aws:/root/.aws:ro
-    ports:
-      - "8004:8004"
     depends_on:
       - postgres
     environment:
@@ -119,13 +134,17 @@ services:
       - DB_PASSWORD=strongpassword
       - DB_HOST=postgres  
       - DB_PORT=5432
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.users.rule=Host(`api.localhost`) && PathPrefix(`/users`)"
+      - "traefik.http.routers.users.middlewares=users-stripprefix"
+      - "traefik.http.middlewares.users-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.users.loadbalancer.server.port=8000"
 
   payment-service:
     build: ./backend/payments
     container_name: payment-service
-    command: python manage.py runserver 0.0.0.0:8005
-    ports:
-      - "8005:8005"
+    command: python manage.py runserver 0.0.0.0:8000
     depends_on:
       - postgres
     environment:
@@ -136,32 +155,46 @@ services:
       - DB_PORT=5432    
       - PAYSTACK_SECRET_KEY=sk_test_3d3a69512e465c85fb29b3bedc14ab77d6b943ae
       - PAYMENT_CALLBACK=https://da94-197-248-143-155.ngrok-free.app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payments.rule=Host(`api.localhost`) && PathPrefix(`/payments`)"
+      - "traefik.http.routers.payments.middlewares=payments-stripprefix"
+      - "traefik.http.middlewares.payments-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.payments.loadbalancer.server.port=8000"
 
   cart-service:
     build: ./backend/cart
     container_name: cart-service
-    command: python manage.py runserver 0.0.0.0:8006
-    ports:
-      - "8006:8006"
+    command: python manage.py runserver 0.0.0.0:8000
     depends_on:
       - redis
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - CART_TTL_SECONDS=180
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cart.rule=Host(`api.localhost`) && PathPrefix(`/cart`)"
+      - "traefik.http.routers.cart.middlewares=cart-stripprefix"
+      - "traefik.http.middlewares.cart-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.cart.loadbalancer.server.port=8000"
 
   checkout-service:
     build: ./backend/checkout
     container_name: checkout-service
-    command: python manage.py runserver 0.0.0.0:8007
-    ports:
-      - "8007:8007"
+    command: python manage.py runserver 0.0.0.0:8000
     environment:
-      - ORDERS_SERVICE_URL=http://order-service:8002
-      - PAYMENT_SERVICE_URL=http://payment-service:8005
+      - ORDERS_SERVICE_URL=http://order-service:8000
+      - PAYMENT_SERVICE_URL=http://payment-service:8000
     depends_on:
       - order-service
       - payment-service  
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.checkout.rule=Host(`api.localhost`) && PathPrefix(`/checkout`)"
+      - "traefik.http.routers.checkout.middlewares=checkout-stripprefix"
+      - "traefik.http.middlewares.checkout-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.checkout.loadbalancer.server.port=8000"
 
 volumes:
   pgdata:

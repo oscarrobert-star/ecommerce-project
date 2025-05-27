@@ -3,38 +3,98 @@ import { Container, Row, Col, Card, Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import "../assets/css/checkoutpage.css";
 
+// Define a constant for your cart items key
+const CART_ITEMS_KEY = "cart";
+const CART_ID_KEY = "cart_id"; // Also define cart_id key for consistency
+
 export default function CheckoutPage() {
     const navigate = useNavigate();
-    const [cart, setCart] = useState(JSON.parse(localStorage.getItem("cart")) || []);
+    // Ensure you're pulling from the correct localStorage key
+    const [cart, setCart] = useState(JSON.parse(localStorage.getItem(CART_ITEMS_KEY)) || []);
     const [name, setName] = useState("");
     const [address, setAddress] = useState("");
     const [email, setEmail] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("credit-card");
+    const [paymentMethod, setPaymentMethod] = useState("card");
 
     useEffect(() => {
+        // Redirect to cart if cart is empty
         if (cart.length === 0) {
-            navigate("/cart"); // Redirect to cart if cart is empty
+            navigate("/cart");
         }
     }, [cart, navigate]);
 
     // Calculate total price
     const calculateTotal = () => {
-        return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+        // Use parseFloat for item.price as it might be a string from backend/localStorage
+        return cart.reduce((total, item) => total + parseFloat(item.price) * item.quantity, 0).toFixed(2);
+    };
+
+    // Convert total to integer in kobo (or smallest currency unit)
+    const calculateAmountInKobo = () => {
+        return Math.round(parseFloat(calculateTotal()) * 100);
+    };
+
+    // Prepare item details for backend
+    const formatItems = () => {
+        return cart.map((item) => ({
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            price: item.price.toString(),
+        }));
     };
 
     // Handle order submission
-    const handleOrderSubmit = (e) => {
+    const handleOrderSubmit = async (e) => {
         e.preventDefault();
-        alert("Order placed successfully!");
-        // Clear the cart after successful order
-        localStorage.removeItem("cart");
-        setCart([]);
-        navigate("/"); // Redirect to home after placing the order
+
+        const payload = {
+            email: email,
+            amount: calculateAmountInKobo(),
+            channel: paymentMethod,
+            items: formatItems(),
+        };
+
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/checkout/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                // If the order couldn't be placed, we should NOT clear the cart.
+                throw new Error("Failed to place order or create payment URL.");
+            }
+
+            const data = await response.json();
+
+            // --- CRUCIAL CHANGE: Do NOT clear cart HERE. ---
+            // The cart should only be cleared AFTER successful payment confirmation
+            // (e.g., on a success callback page from the payment gateway).
+            // localStorage.removeItem(CART_ITEMS_KEY);
+            // localStorage.removeItem(CART_ID_KEY);
+            // setCart([]);
+
+            // Redirect to the payment page FIRST
+            if (data.data && data.data.authorization_url) {
+                window.location.href = data.data.authorization_url;
+            } else {
+                console.error("Authorization URL not found in response:", data);
+                alert("Order placed, but no payment URL returned. Your cart remains in storage.");
+                navigate("/"); // Or stay on checkout with an error message
+            }
+        } catch (error) {
+            console.error("Error placing order:", error);
+            alert("There was an error placing your order. Please try again. Your cart was not cleared.");
+        }
     };
 
     // Back to Cart Handler
     const handleBackToCart = () => {
-        navigate("/cart"); // Navigate back to the cart page
+        navigate("/cart");
     };
 
     return (
@@ -47,14 +107,14 @@ export default function CheckoutPage() {
                     <Card className="mb-4">
                         <Card.Body>
                             <h4>Order Summary</h4>
-                            {cart.map((product) => (
-                                <Row key={product.id} className="mb-3">
+                            {cart.map((product, index) => (
+                                <Row key={product.product_id || index} className="mb-3">
                                     <Col xs={8}>
-                                        <h5>{product.name}</h5>
+                                        <h5>{product.product_name || "Unknown Product"}</h5>
                                         <p>Quantity: {product.quantity}</p>
                                     </Col>
                                     <Col xs={4} className="text-right">
-                                        <h6>${(product.price * product.quantity).toFixed(2)}</h6>
+                                        <h6>${(parseFloat(product.price) * product.quantity).toFixed(2)}</h6>
                                     </Col>
                                 </Row>
                             ))}
@@ -109,15 +169,14 @@ export default function CheckoutPage() {
 
                                 <Form.Group controlId="formPayment" className="mb-3">
                                     <Form.Label>Payment Method</Form.Label>
-                                    <Form.Control
-                                        as="select"
+                                    <Form.Select
                                         value={paymentMethod}
                                         onChange={(e) => setPaymentMethod(e.target.value)}
                                         required
                                     >
-                                        <option value="credit-card">Credit Card</option>
-                                        <option value="paypal">PayPal</option>
-                                    </Form.Control>
+                                        <option value="card">Card</option>
+                                        <option value="mobile_money">Mobile Money</option>
+                                    </Form.Select>
                                 </Form.Group>
 
                                 <Button variant="success" type="submit" className="w-100 mb-3">

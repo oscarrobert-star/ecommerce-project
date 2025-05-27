@@ -33,13 +33,14 @@ ORDERS_SERVICE_URL = os.environ.get("ORDERS_SERVICE_URL")
 url = f"{ORDERS_SERVICE_URL}/orders/"
 # url = "http://localhost:8002/orders/"  # Replace with your actual orders service URL
 # TODO: add service to serive autentication
-def create_order(email, items):
+def create_order(email, items, total_amount):
     logging.info(f"Request received to create order for email: {email}")
     order_data = {
         "customer_id": email,
         "payment_status": "pending",
         "shipping_status": "pending",
-        "items": items
+        "items": items,
+        "total_amount": total_amount
     }
     try:
         response = requests.post(url, json=order_data)

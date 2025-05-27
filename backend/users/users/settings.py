@@ -96,14 +96,18 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174"
+    "http://127.0.0.1:5174",
+    "http://client.localhost",  # your React frontend
+    "http://admin.localhost",  # your Django admin frontend
 ] 
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:5174"   # your React frontend
+    "http://127.0.0.1:5174",
+    "http://client.localhost",  # your React frontend
+    "http://admin.localhost", 
 ]
 
 ROOT_URLCONF = 'users.urls'

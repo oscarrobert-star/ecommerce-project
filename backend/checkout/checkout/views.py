@@ -44,7 +44,7 @@ def checkout(request):
 
         # Create order
         logging.info("Calling oerder service to create order")
-        order = order_service.create_order(email=email,items=items)
+        order = order_service.create_order(email=email,items=items, total_amount=amount)
 
         if not order:
             return JsonResponse({"error": "Failed to create order."}, status=500)

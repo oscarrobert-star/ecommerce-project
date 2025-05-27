@@ -15,7 +15,8 @@ class Order(models.Model):
     ], default="pending")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    payment_reference = models.CharField(max_length=255, blank=True, null=True)  # from payment service
+    payment_reference = models.CharField(max_length=255, blank=True, null=True, db_index=True)  # from payment service
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # total amount at time of purchase
 
     class Meta:
         db_table = 'orders'
