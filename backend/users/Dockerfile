@@ -32,7 +32,6 @@
     
     WORKDIR /app
     
-    
     # Copy dependencies and app from builder
     COPY --from=builder /install /usr/local
     COPY --from=builder /app /app
