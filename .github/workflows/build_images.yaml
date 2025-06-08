@@ -1,0 +1,63 @@
+name: Build and Push Changed Backend Services to ECR
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'backend/**'
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  detect-and-build:
+    name: Build & Push Changed Services
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get Changed Backend Services
+        id: detect
+        run: |
+          echo "Changed backend services:"
+          SERVICES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
+            grep '^backend/' | \
+            grep -Ev '^backend/env/' | \
+            awk -F/ '{print $2}' | \
+            sort -u)
+          echo "$SERVICES"
+
+          echo "services=${SERVICES}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Images
+        if: steps.detect.outputs.services != ''
+        env:
+          ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          for service in ${{ steps.detect.outputs.services }}; do
+            IMAGE_URI="$ECR_BASE/$service"
+
+            echo "Building and pushing image for $service..."
+            docker build -t $IMAGE_URI:$IMAGE_TAG ./backend/$service
+            docker tag $IMAGE_URI:$IMAGE_TAG $IMAGE_URI:latest
+
+            docker push $IMAGE_URI:$IMAGE_TAG
+            docker push $IMAGE_URI:latest
+          done

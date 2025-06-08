@@ -1,0 +1,1 @@
+# Create CDN resources and configurations

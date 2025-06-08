@@ -3,6 +3,8 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import os
+import hashlib
+import hmac
 
 PAYSTACK_SECRET = os.getenv("PAYSTACK_SECRET_KEY")
 CALLBACK_URL = os.getenv("CALLBACK_URL")  # your e-commerce callback
@@ -59,6 +61,13 @@ def pay(request):
 #     return HttpResponse(status=200)
 
 def webhook(request):
+    # Verify the signature
+    received_signature = request.headers.get("x-paystack-signature")
+    if not received_signature:
+        return JsonResponse({"error": "Missing signature"}, status=400)
+    if not verify_signature(request.body, received_signature, PAYSTACK_SECRET):
+        return JsonResponse({"error": "Invalid signature"}, status=400)
+            
     if request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -68,10 +77,6 @@ def webhook(request):
 
         if data.get("event") == "charge.success":
             reference = data["data"]["reference"]
-            # Optionally verify transaction here with Paystack
-            # Then process it (e.g., update order in DB, send email, etc.) 
-            # Since this is a microservice, it's better to call the orders service endpoint
-            # to update the payment status, rather than writing directly to its database.
 
             order_id = data["data"]["metadata"].get("order_id")
             if order_id:
@@ -100,3 +105,12 @@ def webhook(request):
         return HttpResponse(status=200)
 
     return HttpResponse(status=405)
+
+
+def verify_signature(request_body, received_signature, secret_key):
+    computed = hmac.new(
+        secret_key.encode(),
+        msg=request_body,
+        digestmod=hashlib.sha512
+    ).hexdigest()
+    return hmac.compare_digest(computed, received_signature)
