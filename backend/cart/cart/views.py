@@ -180,4 +180,5 @@ def health_check(request):
         # redis_client.ping()
         return JsonResponse({'status': 'ok'})
     except Exception as e:
+        logging.exception(f"Health check failed with error {e}")
         return JsonResponse({'status': 'error', 'details': str(e)}, status=500)
