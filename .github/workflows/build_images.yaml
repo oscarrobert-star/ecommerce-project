@@ -37,9 +37,9 @@ jobs:
           echo "Changed services:"
           echo "$SERVICES"
 
-          # Convert to JSON array
           JSON=$(echo "$SERVICES" | jq -R . | jq -s .)
-          echo "matrix=$JSON" >> $GITHUB_OUTPUT
+          # Strip leading spaces to make output parser-friendly
+          echo "matrix=$(echo $JSON)" >> $GITHUB_OUTPUT
 
   build:
     name: Build & Push ${{ matrix.service }}
