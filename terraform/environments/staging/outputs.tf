@@ -24,3 +24,9 @@ output "redis_endpoint" {
   description = "The endpoint for the Redis service in the staging environment"
   value       = module.datastore.redis_endpoint
 }
+
+output "database_endpoint" {
+  description = "The endpoint for the RDS database in the staging environment"
+  value       = module.datastore.db_instance_endpoint
+  
+}

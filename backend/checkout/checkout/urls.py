@@ -20,5 +20,5 @@ from . import views
 
 urlpatterns = [
     path('checkout/', name='checkout', view=views.checkout),
-    path('health/', name='health_check', view=views.health_check),
+    path('checkout/health/', name='health_check', view=views.health_check),
 ]

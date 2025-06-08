@@ -24,7 +24,7 @@ urlpatterns = [
     path('users/profile/', ProfileView.as_view(), name='profile'),
     path('users/confirm-signup/', ConfirmSignupView.as_view(), name='confirm'),
     path('users/logout/', LogoutView.as_view, name='logout'),
-    path('health/', view=health_check, name='health_check'),
+    path('users/health/', view=health_check, name='health_check'),
 ]
 
 

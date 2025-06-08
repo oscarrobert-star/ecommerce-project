@@ -11,10 +11,6 @@ locals {
     { name = "DB_PORT",     value = "5432" },
     { name = "DB_NAME",     value = "ecommerce" },
     { name = "DB_USER",     value = module.app-configurations.database_username },
-    { name = "DB_PASSWORD", value = module.app-configurations.database_password },
-    { name = "DB_PORT",     value = "5432" },
-    { name = "DB_NAME",     value = "ecommerce" },
-    { name = "DB_USER",     value = module.app-configurations.database_username },
     { name = "DB_PASSWORD", value = module.app-configurations.database_password }
   ]
 
