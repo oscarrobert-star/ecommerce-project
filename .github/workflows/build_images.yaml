@@ -52,6 +52,9 @@ jobs:
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          echo "Logged into ECR: $ECR_BASE"
+          aws ecr describe-repositories --region $AWS_REGION
+          
           for service in ${{ steps.detect.outputs.services }}; do
             IMAGE_URI="$ECR_BASE/$service"
 
