@@ -23,6 +23,33 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
 
 }
 
+# Add custom inline policy for extra permissions
+resource "aws_iam_role_policy" "ecs_task_execution_custom_permissions" {
+  name = "ecs-task-execution-custom"
+  role = aws_iam_role.ecs_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # 2. ECS Task Role
 resource "aws_iam_role" "ecs_task_role" {
   name = "ecs-task-role"

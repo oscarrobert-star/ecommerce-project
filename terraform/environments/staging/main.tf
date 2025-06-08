@@ -54,6 +54,7 @@ module "container-resources" {
   security_group_ids = [module.vpc.internal_security_group_id]
   vpc_id = module.vpc.vpc_id
   tags = local.tags
+  region = var.aws_region
 
   depends_on = [ module.datastore, module.vpc ]
 }

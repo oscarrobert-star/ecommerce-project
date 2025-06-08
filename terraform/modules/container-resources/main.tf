@@ -51,9 +51,10 @@ resource "aws_ecs_task_definition" "this" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/${each.value}"
+          "awslogs-group"         = "/ecs/${each.value}/"
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = each.value
+          "awslogs-create-group" = "true"
         }
       }
     }
