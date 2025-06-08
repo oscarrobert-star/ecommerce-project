@@ -51,7 +51,7 @@ resource "aws_ecs_task_definition" "this" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/ecs/${each.value}/"
+          "awslogs-group"         = "/ecs/${each.value}"
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = each.value
           "awslogs-create-group" = "true"
@@ -100,7 +100,7 @@ resource "aws_lb_target_group" "this" {
   vpc_id      = var.vpc_id
 
   health_check {
-    path                = "/${each.value}/health"
+    path                = "/${each.value}/health/"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2
