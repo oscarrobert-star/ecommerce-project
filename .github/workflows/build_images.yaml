@@ -52,9 +52,11 @@ jobs:
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
+
           echo "Logged into ECR: $ECR_BASE"
           aws ecr describe-repositories --region $AWS_REGION
-          
+
           for service in ${{ steps.detect.outputs.services }}; do
             IMAGE_URI="$ECR_BASE/$service"
 
