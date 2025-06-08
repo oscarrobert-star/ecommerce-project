@@ -48,6 +48,14 @@ resource "aws_ecs_task_definition" "this" {
         }
       ]
       environment = lookup(var.task_environment, each.value, [])
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = "/ecs/${each.value}"
+          "awslogs-region"        = var.region
+          "awslogs-stream-prefix" = each.value
+        }
+      }
     }
   ])
 

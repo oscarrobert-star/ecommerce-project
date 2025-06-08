@@ -64,3 +64,9 @@ variable "task_role_arn" {
   description = "ARN of the IAM role for ECS tasks"
   type        = string
 }
+
+variable "region" {
+  description = "AWS region where the resources will be created"
+  type        = string
+  
+}

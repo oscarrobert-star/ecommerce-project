@@ -100,4 +100,5 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 @api_view(["GET"])
 def health_check(request):
+    logging.info("Health check endpoint called")
     return Response({"status": "ok"}, status=status.HTTP_200_OK)

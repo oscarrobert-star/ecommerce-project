@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 #     return JsonResponse({"status": "healthy"})
 
 def health_check(request):
+    logging.info("Health check initiated")
     databases = ["default", "replica"]  # 'default' = write DB, 'replica' = read DB
     status = {}
 

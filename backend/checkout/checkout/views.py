@@ -62,6 +62,7 @@ def checkout(request):
     
 @csrf_exempt
 def health_check(request):
+    logging.info("Health check endpoint called")
     if request.method == "GET":
         return JsonResponse({"status": "ok"})
     return HttpResponse(status=405)

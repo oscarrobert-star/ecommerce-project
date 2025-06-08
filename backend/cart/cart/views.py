@@ -173,7 +173,10 @@ def edit_item_quantity(request):
 def health_check(request):
     try:
         # Try pinging Redis
-        redis_client.ping()
+        logging.info("Checking Redis health")
+        if not redis_client.ping():
+            raise Exception("Redis is not reachable")
+        # redis_client.ping()
         return JsonResponse({'status': 'ok'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'details': str(e)}, status=500)
