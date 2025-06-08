@@ -3,11 +3,28 @@ from rest_framework.response import Response
 from .models import Order
 from .serializers import OrderSerializer
 import logging
-import time
+from django.http import JsonResponse
 from rest_framework.decorators import action, api_view
+from django.db import connections
+from django.db.utils import OperationalError
 
 logger = logging.getLogger("order_service")
 
+
+def health_check(request):
+    logging.info("Health check initiated")
+    databases = ["default", "replica"]  # 'default' = write DB, 'replica' = read DB
+    status = {}
+
+    for db in databases:
+        try:
+            connections[db].cursor()
+            status[db] = "ok"
+        except OperationalError:
+            logger.error(f"{db} database connection failed.")
+            status[db] = "unreachable"
+
+    return JsonResponse(status)
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().order_by("-created_at")
@@ -98,7 +115,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(["GET"])
-def health_check(request):
-    logging.info("Health check endpoint called")
-    return Response({"status": "ok"}, status=status.HTTP_200_OK)
+# @api_view(["GET"])
+# def health_check(request):
+#     logging.info("Health check endpoint called")
+#     return Response({"status": "ok"}, status=status.HTTP_200_OK)

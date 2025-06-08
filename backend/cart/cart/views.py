@@ -175,6 +175,7 @@ def health_check(request):
         # Try pinging Redis
         logging.info("Checking Redis health")
         if not redis_client.ping():
+            logging.error("Redis is not reachable")
             raise Exception("Redis is not reachable")
         # redis_client.ping()
         return JsonResponse({'status': 'ok'})
