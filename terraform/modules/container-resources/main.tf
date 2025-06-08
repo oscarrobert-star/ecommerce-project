@@ -38,7 +38,7 @@ resource "aws_ecs_task_definition" "this" {
   container_definitions = jsonencode([
     {
       name      = each.value
-      image     = aws_ecr_repository.this[each.value].repository_url
+      image     = "${aws_ecr_repository.this[each.value].repository_url}:latest"
       essential = true
       portMappings = [
         {
@@ -91,7 +91,7 @@ resource "aws_lb_target_group" "this" {
   vpc_id      = var.vpc_id
 
   health_check {
-    path                = "/"
+    path                = "/health"
     interval            = 30
     timeout             = 5
     healthy_threshold   = 2

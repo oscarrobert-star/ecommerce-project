@@ -170,3 +170,10 @@ def edit_item_quantity(request):
         logging.exception("Failed to update item quantity")
         return JsonResponse({'error': str(e)}, status=500)
 
+def health_check(request):
+    try:
+        # Try pinging Redis
+        redis_client.ping()
+        return JsonResponse({'status': 'ok'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'details': str(e)}, status=500)

@@ -59,3 +59,9 @@ def checkout(request):
             return JsonResponse({"error": "Failed to initialize payment"}, status=500)
 
         return JsonResponse(payment_response)
+    
+@csrf_exempt
+def health_check(request):
+    if request.method == "GET":
+        return JsonResponse({"status": "ok"})
+    return HttpResponse(status=405)

@@ -21,4 +21,5 @@ from . import views
 urlpatterns = [
     path("payments/pay", views.pay),
     path("payments/webhook", views.webhook),
+    path("health/", views.health_check, name="health_check"),
 ]

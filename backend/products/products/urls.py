@@ -30,5 +30,6 @@ urlpatterns = [
     path('products/health/', views.health_check, name='health_check'),
      path('products/bulk/', BulkProductCreateView.as_view(), name='bulk-create-products'),
     path('', include(router.urls)),
+    path('health/', views.health_check, name='health_check'),
     
 ]

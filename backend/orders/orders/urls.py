@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from .views import OrderViewSet
+from .views import OrderViewSet, health_check
 from rest_framework.routers import DefaultRouter
 
 
@@ -37,4 +37,5 @@ urlpatterns = [
     path("", include(router.urls)),
     path("orders/<str:pk>/payment_status/", order_detail, name="order-payment-status"),
     path("orders/<str:pk>/shipping_status/", shipping_detail, name="order-shipping-status"),
+    path("health/", view=health_check, name="health_check"),
 ]

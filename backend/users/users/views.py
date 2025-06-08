@@ -161,3 +161,10 @@ class LogoutView(APIView):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_200_OK)
+
+def health_check(request):
+    """
+    Health check endpoint to verify if the service is running.
+    """
+    logger.info("Health check request received")
+    return Response({"status": "ok"}, status=status.HTTP_200_OK)        

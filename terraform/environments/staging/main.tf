@@ -47,7 +47,7 @@ module "container-resources" {
   cluster_name = "ecommerce-staging-cluster"
   task_execution_role_arn = module.IAM.task_execution_role_arn
   task_role_arn = module.IAM.task_role_arn
-  alb_listener_arn = module.vpc.load_balancer_arn
+  alb_listener_arn = module.vpc.alb_listener_arn
   service_paths = local.service_paths
   task_environment = local.task_environment
   subnet_ids = module.vpc.private_subnet_ids

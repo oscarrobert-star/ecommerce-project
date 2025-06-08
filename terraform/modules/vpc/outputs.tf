@@ -32,3 +32,7 @@ output "load_balancer_arn" {
   value = aws_lb.main.arn
   
 }
+
+output "alb_listener_arn" {
+  value = aws_alb_listener.http.arn
+}

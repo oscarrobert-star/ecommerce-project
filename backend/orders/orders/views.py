@@ -4,7 +4,7 @@ from .models import Order
 from .serializers import OrderSerializer
 import logging
 import time
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 
 logger = logging.getLogger("order_service")
 
@@ -96,3 +96,8 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Order.DoesNotExist:
             logger.error(f"Order with payment reference '{reference}' not found")
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["GET"])
+def health_check(request):
+    return Response({"status": "ok"}, status=status.HTTP_200_OK)

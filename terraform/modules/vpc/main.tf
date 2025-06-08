@@ -213,4 +213,25 @@ resource "aws_lb" "main" {
   )
 }
 
+resource "aws_alb_listener" "http" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "ALB is healthy"
+      status_code  = "200"
+    }
+  }
+
+  tags = merge(
+    var.tags,
+    { Name = "main-alb-http-listener" }
+  )
+  
+}
+
 data "aws_availability_zones" "available" {}

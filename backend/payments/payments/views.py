@@ -114,3 +114,11 @@ def verify_signature(request_body, received_signature, secret_key):
         digestmod=hashlib.sha512
     ).hexdigest()
     return hmac.compare_digest(computed, received_signature)
+
+
+def health_check(request):
+    """
+    Health check endpoint to verify if the service is running.
+    """
+    print("Health check endpoint called")
+    return JsonResponse({"status": "ok"}, status=200)
