@@ -12,9 +12,11 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  detect-and-build:
-    name: Build & Push Changed Services
+  detect:
+    name: Detect Changed Services
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
       - name: Checkout Code
@@ -23,17 +25,34 @@ jobs:
           fetch-depth: 2
 
       - name: Get Changed Backend Services
-        id: detect
+        id: set-matrix
         run: |
-          echo "Changed backend services:"
+          echo "Detecting changed backend services..."
           SERVICES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
             grep '^backend/' | \
             grep -Ev '^backend/env/' | \
             awk -F/ '{print $2}' | \
             sort -u)
+
+          echo "Changed services:"
           echo "$SERVICES"
 
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          # Convert to JSON array
+          JSON=$(echo "$SERVICES" | jq -R . | jq -s .)
+          echo "matrix=$JSON" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build & Push ${{ matrix.service }}
+    needs: detect
+    runs-on: ubuntu-latest
+    if: needs.detect.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect.outputs.matrix) }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -43,27 +62,17 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Images
-        if: steps.detect.outputs.services != ''
+      - name: Build and Push Image
         env:
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
+          IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
+          echo "Building Docker image for service: ${{ matrix.service }}"
 
-          echo "Logged into ECR: $ECR_BASE"
-          aws ecr describe-repositories --region $AWS_REGION
+          docker build -t $IMAGE_URI:${{ env.IMAGE_TAG }} ./backend/${{ matrix.service }}
+          docker tag $IMAGE_URI:${{ env.IMAGE_TAG }} $IMAGE_URI:latest
 
-          for service in ${{ steps.detect.outputs.services }}; do
-            IMAGE_URI="$ECR_BASE/$service"
-
-            echo "Building and pushing image for $service..."
-            docker build -t $IMAGE_URI:$IMAGE_TAG ./backend/$service
-            docker tag $IMAGE_URI:$IMAGE_TAG $IMAGE_URI:latest
-
-            docker push $IMAGE_URI:$IMAGE_TAG
-            docker push $IMAGE_URI:latest
-          done
+          docker push $IMAGE_URI:${{ env.IMAGE_TAG }}
+          docker push $IMAGE_URI:latest
