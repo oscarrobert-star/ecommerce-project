@@ -8,6 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from . import cognito
 from .models import Customer, AdminUser
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -167,4 +168,4 @@ def health_check(request):
     Health check endpoint to verify if the service is running.
     """
     logger.info("Health check request received")
-    return Response({"status": "ok"}, status=status.HTTP_200_OK)        
+    return JsonResponse({"status": "ok"}, status=status.HTTP_200_OK)        
