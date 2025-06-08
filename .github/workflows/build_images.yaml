@@ -61,18 +61,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Manual ECR Login (fallback)
-        run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
-
-
       - name: Build and Push Image
         env:
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
 
           IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
           echo "Building Docker image for service: ${{ matrix.service }}"
