@@ -59,3 +59,13 @@ module "container-resources" {
 
   depends_on = [ module.datastore ]
 }
+
+module "api-integrations" {
+  source = "../../modules/api-integrations"
+  load_balancer_arn = module.vpc.alb_listener_arn
+  vpc_link_id = module.vpc.vpc_link_id
+
+  depends_on = [ module.container-resources ]
+  api_endpoints = local.api_endpoints
+  tags = local.tags
+}

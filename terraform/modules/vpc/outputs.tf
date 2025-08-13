@@ -40,3 +40,13 @@ output "load_balancer_arn" {
 output "alb_listener_arn" {
   value = aws_alb_listener.http.arn
 }
+
+output "vpc_link_id" {
+  value = aws_apigatewayv2_vpc_link.vpc_link.id
+  
+}
+
+output "alb_dns_name" {
+  value = aws_lb.main.dns_name
+  
+}

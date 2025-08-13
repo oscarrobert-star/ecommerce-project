@@ -244,4 +244,16 @@ resource "aws_alb_listener" "http" {
   
 }
 
+# VPC Link for API Gateway to connect to ALB
+resource "aws_apigatewayv2_vpc_link" "vpc_link" {
+  name        = "main-vpc-link"
+  security_group_ids = [aws_security_group.alb_sg.id]
+  subnet_ids  = aws_subnet.private[*].id
+
+  tags = merge(
+    var.tags,
+    { Name = "main-vpc-link" }
+  )
+}
+
 data "aws_availability_zones" "available" {}

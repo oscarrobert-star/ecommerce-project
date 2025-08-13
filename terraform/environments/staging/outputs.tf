@@ -30,3 +30,14 @@ output "database_endpoint" {
   value       = module.datastore.db_instance_endpoint
   
 }
+
+output "vpc_link_id" {
+  description = "The ID of the VPC link for API Gateway in the staging environment"
+  value       = module.vpc.vpc_link_id
+  
+}
+
+# output "vpc_link_status" {
+#   description = "The status of the VPC link for API Gateway in the staging environment"
+#   value       = module.vpc.vpc_link_status
+# }

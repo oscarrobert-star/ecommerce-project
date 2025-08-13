@@ -20,14 +20,15 @@ locals {
   ]
 
   checkout_extra_env = [
-    { name = "ORDERS_SERVICE_URL",  value = "http://order-service:8000" },
-    { name = "PAYMENT_SERVICE_URL", value = "http://payment-service:8000" }
+    { name = "ORDERS_SERVICE_URL",  value = module.vpc.alb_dns_name },
+    { name = "PAYMENT_SERVICE_URL", value = module.vpc.alb_dns_name }
   ]
 
   cart_env = [
     { name = "REDIS_HOST",         value = module.datastore.redis_endpoint },
     { name = "REDIS_PORT",         value = "6379" },
-    { name = "CART_TTL_SECONDS",   value = "180" }
+    { name = "CART_TTL_SECONDS",   value = "180" },
+    { name = "CART_MAX_ITEMS",     value = "100" }
   ]
 
   task_environment = {
@@ -38,4 +39,13 @@ locals {
     checkout = concat(local.db_env, local.checkout_extra_env),
     cart     = local.cart_env
   }
+
+  api_endpoints = {
+    orders   = "/orders",
+    products = "/products",
+    users    = "/users",
+    payments = "/payments",
+    checkout = "/checkout",
+    cart     = "/cart"
+  }  
 }

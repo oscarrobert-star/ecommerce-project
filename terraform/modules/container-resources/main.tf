@@ -126,7 +126,7 @@ resource "aws_lb_listener_rule" "this" {
 
   condition {
     path_pattern {
-      values = [var.service_paths[each.key]]
+      values = [var.service_paths[each.key], "${var.service_paths[each.key]}*", "${var.service_paths[each.key]}/*"]
     }
   }
 }
