@@ -47,3 +47,8 @@ variable "subnet_ids" {
     description = "List of subnet IDs for the ElastiCache Redis cluster"
     type        = list(string)
 }
+
+variable "redis_subnet_group_name" {
+    description = "Subnet group name for the ElastiCache Redis cluster"
+    type        = string
+}

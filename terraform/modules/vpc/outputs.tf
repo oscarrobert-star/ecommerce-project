@@ -28,6 +28,10 @@ output "database_subnet_group_name" {
   
 }
 
+output "redis_subnet_group_name" {
+  value = aws_elasticache_subnet_group.redis.name
+}
+
 output "load_balancer_arn" {
   value = aws_lb.main.arn
   

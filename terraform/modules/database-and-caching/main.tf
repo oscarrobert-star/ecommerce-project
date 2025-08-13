@@ -19,30 +19,32 @@ resource "aws_db_instance" "postgres" {
     tags = var.tags
 }
 
-# resource "aws_elasticache_cluster" "redis" {
-#     cluster_id           = "ecommerce-redis"
-#     engine               = "redis"
-#     node_type            = var.node_type
-#     num_cache_nodes      = 1
-#     parameter_group_name = "default.redis7"
-#     subnet_group_name    = var.db_subnet_group
-#     security_group_ids   = var.db_security_group_ids
-#     tags                 = var.tags
-# }
-
-resource "aws_elasticache_serverless_cache" "ecommerce" {
-  engine = "redis"
-  name = "ecommerce-redis"
-  cache_usage_limits {
-    data_storage {
-      maximum = 1
-      unit    = "GB"
-    }
-    ecpu_per_second {
-      maximum = 5000
-    }
-  }
-  security_group_ids = var.db_security_group_ids
-  subnet_ids = var.subnet_ids
-  major_engine_version     = "7"
+resource "aws_elasticache_cluster" "redis" {
+    cluster_id           = "ecommerce-redis"
+    engine               = "redis"
+    node_type            = var.node_type
+    num_cache_nodes      = 1
+    parameter_group_name = "default.redis7"
+    subnet_group_name    = var.redis_subnet_group_name
+    security_group_ids   = var.db_security_group_ids
+    tags                 = var.tags
 }
+
+# Very expensive to run, so commented out for now
+# Uncomment if you want to use ElastiCache Serverless Redis
+# resource "aws_elasticache_serverless_cache" "ecommerce" {
+#   engine = "redis"
+#   name = "ecommerce-redis"
+#   cache_usage_limits {
+#     data_storage {
+#       maximum = 1
+#       unit    = "GB"
+#     }
+#     ecpu_per_second {
+#       maximum = 5000
+#     }
+#   }
+#   security_group_ids = var.db_security_group_ids
+#   subnet_ids = var.subnet_ids
+#   major_engine_version     = "7"
+# }

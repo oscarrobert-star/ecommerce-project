@@ -25,7 +25,7 @@ locals {
   ]
 
   cart_env = [
-    { name = "REDIS_HOST",         value = module.datastore.redis_endpoint[0].address },
+    { name = "REDIS_HOST",         value = module.datastore.redis_endpoint },
     { name = "REDIS_PORT",         value = "6379" },
     { name = "CART_TTL_SECONDS",   value = "180" }
   ]

@@ -200,6 +200,16 @@ resource "aws_db_subnet_group" "rds" {
   )
 }
 
+resource "aws_elasticache_subnet_group" "redis" {
+  name       = "redis-subnet-group"
+  subnet_ids = aws_subnet.private[*].id
+  description = "Subnet group for Redis cluster"
+  tags = merge(
+    var.tags,
+    { Name = "redis-subnet-group" }
+  )
+}
+
 resource "aws_lb" "main" {
   name               = "main-alb"
   internal           = true

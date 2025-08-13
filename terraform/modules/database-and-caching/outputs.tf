@@ -13,8 +13,13 @@ output "db_instance_arn" {
     value       = aws_db_instance.postgres.arn
 }
 
-output "redis_endpoint" {
-    description = "The connection endpoint for the Redis instance"
-    value = aws_elasticache_serverless_cache.ecommerce.endpoint
+# output "redis_endpoint" {
+#     description = "The connection endpoint for the Redis instance"
+#     value = aws_elasticache_serverless_cache.ecommerce.endpoint
   
+# }
+
+output "redis_endpoint" {
+    description = "The connection endpoint for the Redis cluster"
+    value       = aws_elasticache_cluster.redis.configuration_endpoint_address
 }

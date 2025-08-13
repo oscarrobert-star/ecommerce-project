@@ -32,6 +32,7 @@ module "datastore" {
   db_password         = module.app-configurations.database_password
   db_security_group_ids = [module.vpc.database_security_group_id]
   db_subnet_group = module.vpc.database_subnet_group_name
+  redis_subnet_group_name = module.vpc.redis_subnet_group_name
   instance_class = "db.t3.micro"
   tags = local.tags
   node_type = "cache.t3.micro"
@@ -56,5 +57,5 @@ module "container-resources" {
   tags = local.tags
   region = var.aws_region
 
-  depends_on = [ module.datastore, module.vpc ]
+  depends_on = [ module.datastore ]
 }
