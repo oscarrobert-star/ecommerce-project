@@ -200,3 +200,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AWS_COGNITO_USER_POOL_ID = 'us-east-2_z85bK6N7O'
 AWS_COGNITO_CLIENT_ID = '4r7ckqqirortv6hsd9errc5375'
 AWS_COGNITO_REGION = 'us-east-2'
+
+APPEND_SLASH = False

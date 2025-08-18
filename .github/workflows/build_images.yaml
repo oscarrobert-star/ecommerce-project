@@ -32,14 +32,20 @@ jobs:
             grep '^backend/' | \
             grep -Ev '^backend/env/' | \
             awk -F/ '{print $2}' | \
-            sort -u)
+            sort -u | \
+            grep -v '^$')  # remove empty lines
 
           echo "Changed services:"
           echo "$SERVICES"
 
-          JSON=$(echo "$SERVICES" | jq -R . | jq -s .)
-          # Strip leading spaces to make output parser-friendly
-          echo "matrix=$(echo $JSON)" >> $GITHUB_OUTPUT
+          if [ -z "$SERVICES" ]; then
+            JSON="[]"
+          else
+            JSON=$(echo "$SERVICES" | jq -R . | jq -s .)
+          fi
+
+          echo "matrix=$JSON" >> $GITHUB_OUTPUT
+
 
   build:
     name: Build & Push ${{ matrix.service }}
