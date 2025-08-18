@@ -23,13 +23,15 @@ module "app-configurations" {
 module "IAM" {
   source = "../../modules/IAM"
   tags = local.tags
+
+  depends_on = [ module.datastore, module.app-configurations ]
 }
 
 module "datastore" {
   source = "../../modules/database-and-caching"
   db_name             = "ecommerce"
-  db_username         = module.app-configurations.database_username
-  db_password         = module.app-configurations.database_password
+  # db_username         = module.app-configurations.database_username
+  # db_password         = module.app-configurations.database_password
   db_security_group_ids = [module.vpc.database_security_group_id]
   db_subnet_group = module.vpc.database_subnet_group_name
   redis_subnet_group_name = module.vpc.redis_subnet_group_name
@@ -37,6 +39,7 @@ module "datastore" {
   tags = local.tags
   node_type = "cache.t3.micro"
   subnet_ids = module.vpc.private_subnet_ids
+  db_username_param_name = module.app-configurations.db_username_param_name
 
   depends_on = [ module.app-configurations, module.vpc ]
 }
@@ -46,7 +49,8 @@ module "container-resources" {
   service_names = local.service_names
   repository_names = local.service_names
   cluster_name = "ecommerce-staging-cluster"
-  task_execution_role_arn = module.IAM.task_execution_role_arn
+  # task_execution_role_arn = module.IAM.task_execution_role_arn
+  secrets = local.secrets
   task_role_arn = module.IAM.task_role_arn
   alb_listener_arn = module.vpc.alb_listener_arn
   service_paths = local.service_paths
@@ -66,6 +70,6 @@ module "api-integrations" {
   vpc_link_id = module.vpc.vpc_link_id
 
   depends_on = [ module.container-resources ]
-  api_endpoints = local.api_endpoints
+  api_endpoints = local.api_endpoint
   tags = local.tags
 }

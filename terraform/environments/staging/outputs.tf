@@ -20,10 +20,10 @@ output "internal_security_group_id" {
   value       = module.vpc.internal_security_group_id
 }
 
-output "redis_endpoint" {
-  description = "The endpoint for the Redis service in the staging environment"
-  value       = module.datastore.redis_endpoint
-}
+# output "redis_endpoint" {
+#   description = "The endpoint for the Redis service in the staging environment"
+#   value       = module.datastore.redis_endpoint
+# }
 
 output "database_endpoint" {
   description = "The endpoint for the RDS database in the staging environment"
@@ -37,7 +37,12 @@ output "vpc_link_id" {
   
 }
 
-# output "vpc_link_status" {
-#   description = "The status of the VPC link for API Gateway in the staging environment"
-#   value       = module.vpc.vpc_link_status
-# }
+output "db_password_secret_arn" {
+  value = module.datastore.db_password_secret_arn
+  description = "The ARN of the secret containing the RDS instance password"
+}
+
+output "db_username_param_arn" {
+  value = module.app-configurations.db_username_param_arn
+  description = "The ARN of the SSM parameter containing the database username"
+}

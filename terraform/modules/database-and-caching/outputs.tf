@@ -13,6 +13,10 @@ output "db_instance_arn" {
     value       = aws_db_instance.postgres.arn
 }
 
+output "db_password_secret_arn" {
+  value = aws_db_instance.postgres.master_user_secret[0].secret_arn
+  description = "The ARN of the secret containing the RDS instance password"
+}
 # output "redis_endpoint" {
 #     description = "The connection endpoint for the Redis instance"
 #     value = aws_elasticache_serverless_cache.ecommerce.endpoint

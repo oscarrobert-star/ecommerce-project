@@ -26,5 +26,3 @@ urlpatterns = [
     path('users/logout/', LogoutView.as_view, name='logout'),
     path('users/health/', view=health_check, name='health_check'),
 ]
-
-

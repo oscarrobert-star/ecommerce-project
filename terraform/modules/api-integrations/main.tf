@@ -31,10 +31,11 @@ resource "aws_apigatewayv2_integration" "http_integration" {
 # Example: Create routes and integrations for multiple endpoints (cart, order, etc.)
 # Create an API Gateway route and integration for each endpoint
 resource "aws_apigatewayv2_route" "service_routes" {
-  for_each = var.api_endpoints
+  for_each = toset(var.api_endpoints)
 
   api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "ANY ${each.value}/{proxy+}"
+  # route_key = "ANY ${each.value}/{proxy+}"
+  route_key = each.value
   target    = "integrations/${aws_apigatewayv2_integration.http_integration.id}"
 }
 
@@ -78,7 +79,7 @@ resource "aws_apigatewayv2_stage" "default" {
 
 resource "aws_cloudwatch_log_group" "api_gateway_logs" {
   name              = "/aws/apigateway/${aws_apigatewayv2_api.http_api.name}"
-  retention_in_days = 30
+  retention_in_days = 3
 
   tags = merge(var.tags, { Name = "api-gateway-logs" })
 }

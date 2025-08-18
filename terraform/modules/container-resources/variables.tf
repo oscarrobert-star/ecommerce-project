@@ -29,6 +29,15 @@ variable "task_environment" {
   default = {}
 }
 
+variable "secrets" {
+  description = "Map of service name to secrets for ECS tasks"
+  type = map(list(object({
+    name      = string
+    valueFrom = string
+  })))
+  default = {}
+}
+
 variable "alb_listener_arn" {
   description = "ARN of the ALB listener for path-based routing"
   type        = string
@@ -56,10 +65,10 @@ variable "security_group_ids" {
   
 }
 
-variable "task_execution_role_arn" {
-  description = "ARN of the IAM role for ECS task execution"
-  type        = string
-}
+# variable "task_execution_role_arn" {
+#   description = "ARN of the IAM role for ECS task execution"
+#   type        = string
+# }
 variable "task_role_arn" {
   description = "ARN of the IAM role for ECS tasks"
   type        = string

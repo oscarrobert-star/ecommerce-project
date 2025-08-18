@@ -1,20 +1,21 @@
 # In this modul we create the container resources - AWS ECR, AWS ECS Cluster, AWS ECS Task Definition, AWS ECS Service
 
-resource "aws_ecr_repository" "this" {
-  for_each = toset(var.repository_names)
+# resource "aws_ecr_repository" "this" {
+#   for_each = toset(var.repository_names)
 
-  name = each.value
+#   name = each.value
 
-  image_scanning_configuration {
-    scan_on_push = true
-  }
+#   image_scanning_configuration {
+#     scan_on_push = true
+#   }
 
-  image_tag_mutability = "MUTABLE"
+#   image_tag_mutability = "MUTABLE"
 
-  tags = merge(var.tags, {
-    Name = each.value
-  })
-}
+#   tags = merge(var.tags, {
+#     Name = each.value
+#   })
+# }
+data "aws_caller_identity" "current" {}
 
 resource "aws_ecs_cluster" "this" {
   name = var.cluster_name
@@ -32,13 +33,14 @@ resource "aws_ecs_task_definition" "this" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn      = var.task_execution_role_arn
+  execution_role_arn      = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecs-task-execution-role"
   task_role_arn           = var.task_role_arn
 
   container_definitions = jsonencode([
     {
       name      = each.value
-      image     = "${aws_ecr_repository.this[each.value].repository_url}:latest"
+      # image     = "${aws_ecr_repository.this[each.value].repository_url}:latest"
+      image     = "${data.aws_caller_identity.current.account_id}.dkr.ecr.us-east-2.amazonaws.com/${each.value}:latest"
       essential = true
       portMappings = [
         {
@@ -48,6 +50,7 @@ resource "aws_ecs_task_definition" "this" {
         }
       ]
       environment = lookup(var.task_environment, each.value, [])
+      secrets = lookup(var.secrets, each.value, []) 
       logConfiguration = {
         logDriver = "awslogs"
         options = {

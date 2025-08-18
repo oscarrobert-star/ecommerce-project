@@ -1,11 +1,17 @@
 
 # Define a map variable in your module to list your endpoints and their paths
+# variable "api_endpoints" {
+#   type = map(string)
+#   default = {
+#     cart  = "/cart"
+#     order = "/order"
+#   }
+# }
 variable "api_endpoints" {
-  type = map(string)
-  default = {
-    cart  = "/cart"
-    order = "/order"
-  }
+  description = "Map of API endpoints to their paths"
+  type        = list(string)
+  default     = []
+  
 }
 
 variable "tags" {
