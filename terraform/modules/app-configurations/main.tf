@@ -23,18 +23,18 @@
 ######################################################
 ######## PARAMETER STORE FOR CONFIGS ##########
 ######################################################
-resource "aws_ssm_parameter" "db_username" {
-  name        = "/${var.env}/database/username"
-  description = "RDS master username"
-  type        = "String"
-  value       = var.db_username
-  tags        = var.tags
-}
+# resource "aws_ssm_parameter" "db_username" {
+#   name        = "/${var.env}/database/username"
+#   description = "RDS master username"
+#   type        = "String"
+#   value       = var.db_username
+#   tags        = var.tags
+# }
 
 resource "aws_ssm_parameter" "payment_callback_url" {
   name        = "/${var.env}/payment_callback_url"
   description = "RDS master password"
-  type        = "SecureString"
+  type        = "String"
   value       = var.payment_callback_url
   tags        = var.tags
 } 
@@ -42,7 +42,7 @@ resource "aws_ssm_parameter" "payment_callback_url" {
 resource "aws_ssm_parameter" "paystack_secret_key" {
   name        = "/${var.env}/paystack/secret_key"
   description = "Paystack secret key"
-  type        = "SecureString"
+  type        = "String"
   value       = var.paystack_secret_key
   tags        = var.tags    
   

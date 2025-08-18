@@ -1,8 +1,4 @@
 # In this module we create the database and caching resources - AWS RDS, AWS ElastiCache Redis
-data "aws_ssm_parameter" "db_username" {
-  name = var.db_username_param_name
-}
-
 resource "aws_db_instance" "postgres" {
     allocated_storage    = 20
     storage_type         = "gp2"
@@ -11,9 +7,8 @@ resource "aws_db_instance" "postgres" {
     instance_class       = var.instance_class
     db_name = var.db_name
     identifier           = "ecommerce-postgres"
-    username             = data.aws_ssm_parameter.db_username.value
+    username             = var.db_username
     manage_master_user_password = true
-    # password             = var.db_password
     parameter_group_name = "default.postgres17"
     db_subnet_group_name = var.db_subnet_group
     vpc_security_group_ids = var.db_security_group_ids
@@ -26,10 +21,9 @@ resource "aws_db_instance" "postgres" {
     lifecycle {
       ignore_changes = [ 
         # Ignore changes to the password, as it is managed by Secrets Manager
-        master_user_password,
+        manage_master_user_password,
         # Ignore changes to the allocated storage, as we are using gp2 which can auto-scale
-        allocated_storage,
-        username
+        allocated_storage
       ]
     }
 }

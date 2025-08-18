@@ -10,13 +10,13 @@ locals {
     { name = "DB_HOST",     value = module.datastore.db_instance_endpoint },
     { name = "DB_PORT",     value = "5432" },
     { name = "DB_NAME",     value = "ecommerce" },
-    # { name = "DB_USER",     value = module.app-configurations.db_username_param_arn },
+    { name = "DB_USER",     value = var.db_username },
     # { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn }
   ]
 
   db_secrets = [
     { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn },
-    { name = "DB_USERNAME", valueFrom = module.app-configurations.db_username_param_arn }
+    # { name = "DB_USERNAME", valueFrom = module.app-configurations.db_username_param_arn }
   ]
 
   payments_secrets = [
@@ -57,26 +57,18 @@ locals {
     payments = local.payments_secrets
   }
 
-  api_endpoints = {
-    orders   = "/orders",
-    products = "/products",
-    users    = "/users",
-    payments = "/payments",
-    checkout = "/checkout",
-    cart     = "/cart"
-  }  
-
   api_endpoint = [
+    # cart service endpoints
     "POST /cart/add",
     "POST /cart/remove",
     "GET /cart",
     "GET /cart/health",
     "POST /cart/clear",
     "PATCH /cart/edit",
-
+    # checkout service endpoints
     "POST /checkout",
     "GET /checkout/health",
-
+    # orders service endpoints
     "POST /orders",
     "GET /orders",
     "GET /orders/{id}",
@@ -84,19 +76,19 @@ locals {
     "PATCH /orders/{id}/payment_status",
     "PATCH /orders/{id}/shipping_status",
     "GET /orders/status/{payment_id}",
-
+    # payments service endpoints
     "POST /payments/pay",
     "POST /payments/webhook",
     "GET /payments/health",
-
-    "POSt /products",
+    # products service endpoints
+    "POST /products",
     "GET /products",
     "GET /products/{id}",
     "PATCH /products/{id}",
     "DELETE /products/{id}",
     "GET /products/health",
     "POST /products/bulk",
-
+    # users service endpoints
     "POST /users/signup",
     "POST /users/login",
     "POST /users/logout",

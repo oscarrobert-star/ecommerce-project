@@ -42,7 +42,3 @@ output "db_password_secret_arn" {
   description = "The ARN of the secret containing the RDS instance password"
 }
 
-output "db_username_param_arn" {
-  value = module.app-configurations.db_username_param_arn
-  description = "The ARN of the SSM parameter containing the database username"
-}

@@ -15,10 +15,10 @@
 ######################################################
 ######## SSM PARAMETERS FOR CONFIGS ##########
 ######################################################
-output "db_username_param_name" {
-  value = aws_ssm_parameter.db_username.name
-}
+# output "db_username_param_name" {
+#   value = aws_ssm_parameter.db_username.name
+# }
 
-output "db_username_param_arn" {
-  value = aws_ssm_parameter.db_username.arn
-}
+# output "db_username_param_arn" {
+#   value = aws_ssm_parameter.db_username.arn
+# }

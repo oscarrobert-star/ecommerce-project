@@ -30,8 +30,7 @@ module "IAM" {
 module "datastore" {
   source = "../../modules/database-and-caching"
   db_name             = "ecommerce"
-  # db_username         = module.app-configurations.database_username
-  # db_password         = module.app-configurations.database_password
+  db_username         = var.db_username
   db_security_group_ids = [module.vpc.database_security_group_id]
   db_subnet_group = module.vpc.database_subnet_group_name
   redis_subnet_group_name = module.vpc.redis_subnet_group_name
@@ -39,8 +38,6 @@ module "datastore" {
   tags = local.tags
   node_type = "cache.t3.micro"
   subnet_ids = module.vpc.private_subnet_ids
-  db_username_param_name = module.app-configurations.db_username_param_name
-
   depends_on = [ module.app-configurations, module.vpc ]
 }
 

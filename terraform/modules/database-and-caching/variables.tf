@@ -3,16 +3,16 @@ variable "db_name" {
     type        = string
 }
 
-# variable "db_username" {
-#     description = "Username for the database"
-#     type        = string
-#     sensitive = true
-# }
-
-variable "db_username_param_name" {
-    description = "SSM parameter name for the database username"
-    type        = string    
+variable "db_username" {
+    description = "Username for the database"
+    type        = string
+    sensitive = true
 }
+
+# variable "db_username_param_name" {
+#     description = "SSM parameter name for the database username"
+#     type        = string    
+# }
 
 # variable "db_password" {
 #     description = "Password for the database"
