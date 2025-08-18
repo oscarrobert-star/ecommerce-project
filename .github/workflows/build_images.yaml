@@ -41,7 +41,8 @@ jobs:
           if [ -z "$SERVICES" ]; then
             JSON="[]"
           else
-            JSON=$(echo "$SERVICES" | jq -R . | jq -s .)
+            # force jq to emit compact JSON (no newlines/indent)
+            JSON=$(echo "$SERVICES" | jq -R . | jq -s -c .)
           fi
 
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
