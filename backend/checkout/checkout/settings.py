@@ -164,4 +164,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 PAYMENT_SERVICE_URL = os.environ.get("PAYMENT_SERVICE_URL", 'http://localhost:8005')
 ORDERS_SERVICE_URL = os.environ.get("ORDERS_SERVICE_URL", 'http://localhost:8002')
 
-APPEND_SLASH = True
+APPEND_SLASH = False
