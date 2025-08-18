@@ -84,7 +84,16 @@ resource "aws_iam_policy" "ecs_task_policy" {
         "s3:PutObject"
       ]
       Resource = "*"
-    }]
+    },
+    {
+      Effect = "Allow"
+      Action = [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ]
+      Resource = "*"
+    }
+    ]
   })
 
   tags = var.tags

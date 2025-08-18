@@ -10,9 +10,11 @@ locals {
     { name = "DB_HOST",     value = module.datastore.db_instance_endpoint },
     { name = "DB_PORT",     value = "5432" },
     { name = "DB_NAME",     value = "ecommerce" },
-    { name = "DB_USER",     value = var.db_username },
+    { name = "DB_SECRET_ARN", value = module.datastore.db_password_secret_arn },
+    { name = "AWS_REGION", value = var.aws_region }
     # { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn }
   ]
+
 
   db_secrets = [
     { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn },
