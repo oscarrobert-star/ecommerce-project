@@ -52,6 +52,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
+APPEND_SLASH = False
 
 ROOT_URLCONF = 'payments.urls'
 
@@ -189,4 +190,3 @@ LOGGING = {
         },
     },
 }
-APPEND_SLASH = False

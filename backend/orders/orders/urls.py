@@ -35,9 +35,9 @@ shipping_detail = OrderViewSet.as_view({
 
 urlpatterns = [
     # path('admin/', admin.site.urls),
-    path("orders/<str:pk>/payment_status/", order_detail, name="order-payment-status"),
-    path("orders/<str:pk>/shipping_status/", shipping_detail, name="order-shipping-status"),
+    path("orders/<str:pk>/payment_status", order_detail, name="order-payment-status"),
+    path("orders/<str:pk>/shipping_status", shipping_detail, name="order-shipping-status"),
     # path("orders/health/", view=health_check, name="health_check"),
-    path("orders/health/", view=views.health_check, name="health_check"),
+    path("orders/health", view=views.health_check, name="health_check"),
     path("", include(router.urls)),
 ]

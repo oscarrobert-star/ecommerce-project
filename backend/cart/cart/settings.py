@@ -92,6 +92,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+APPEND_SLASH = False
+
 ROOT_URLCONF = 'cart.urls'
 
 TEMPLATES = [
@@ -199,5 +201,3 @@ LOGGING = {
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
 REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
 CART_TTL_SECONDS = os.environ.get('CART_TTL_SECONDS', 300)  # Default to 5 minutes
-
-APPEND_SLASH = False

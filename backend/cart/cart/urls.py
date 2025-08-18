@@ -24,10 +24,10 @@ from . import views
 #     path('cart/<str:user_id>/clear/', views.clear),
 # ]
 urlpatterns = [
-    path('cart/', views.get_cart, name='get_cart'),
-    path('cart/add/', views.add_to_cart, name='add_to_cart'),
-    path('cart/remove/', views.remove_from_cart, name='remove_from_cart'),
-    path('cart/clear/', views.clear_cart, name='clear_cart'),
+    path('cart', views.get_cart, name='get_cart'),
+    path('cart/add', views.add_to_cart, name='add_to_cart'),
+    path('cart/remove', views.remove_from_cart, name='remove_from_cart'),
+    path('cart/clear', views.clear_cart, name='clear_cart'),
     path('cart/edit', views.edit_item_quantity, name='edit_item_quantity'),
-    path('cart/health/', views.health_check, name='health_check'),
+    path('cart/health', views.health_check, name='health_check'),
 ]
