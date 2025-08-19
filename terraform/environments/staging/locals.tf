@@ -7,9 +7,9 @@ locals {
   }
 
   db_env = [
-    { name = "DB_HOST",     value = module.datastore.db_instance_endpoint },
-    { name = "DB_PORT",     value = "5432" },
-    { name = "DB_NAME",     value = "ecommerce" },
+    { name = "DB_HOST", value = module.datastore.db_instance_endpoint },
+    { name = "DB_PORT", value = "5432" },
+    { name = "DB_NAME", value = "ecommerce" },
     { name = "DB_SECRET_ARN", value = module.datastore.db_password_secret_arn },
     { name = "AWS_REGION", value = var.aws_region }
     # { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn }
@@ -17,7 +17,7 @@ locals {
 
 
   db_secrets = [
-    { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn },
+    # { name = "DB_PASSWORD", valueFrom = module.datastore.db_password_secret_arn },
     # { name = "DB_USERNAME", valueFrom = module.app-configurations.db_username_param_arn }
   ]
 
@@ -26,21 +26,21 @@ locals {
     { name = "PAYMENT_CALLBACK", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/payment_callback_url" }
   ]
 
-#   payments_extra_env = [
-#     { name = "PAYSTACK_SECRET_KEY", value = "sk_test_3d3a69512e465c85fb29b3bedc14ab77d6b943ae" },
-#     { name = "PAYMENT_CALLBACK",    value = "https://api.ecommerce.com/payments/callback" }
-#   ]
+  #   payments_extra_env = [
+  #     { name = "PAYSTACK_SECRET_KEY", value = "sk_test_3d3a69512e465c85fb29b3bedc14ab77d6b943ae" },
+  #     { name = "PAYMENT_CALLBACK",    value = "https://api.ecommerce.com/payments/callback" }
+  #   ]
 
   checkout_extra_env = [
-    { name = "ORDERS_SERVICE_URL",  value = module.vpc.alb_dns_name },
+    { name = "ORDERS_SERVICE_URL", value = module.vpc.alb_dns_name },
     { name = "PAYMENT_SERVICE_URL", value = module.vpc.alb_dns_name }
   ]
 
   cart_env = [
-    { name = "REDIS_HOST",         value = module.datastore.redis_endpoint },
-    { name = "REDIS_PORT",         value = "6379" },
-    { name = "CART_TTL_SECONDS",   value = "180" },
-    { name = "CART_MAX_ITEMS",     value = "100" }
+    { name = "REDIS_HOST", value = module.datastore.redis_endpoint },
+    { name = "REDIS_PORT", value = "6379" },
+    { name = "CART_TTL_SECONDS", value = "180" },
+    { name = "CART_MAX_ITEMS", value = "100" }
   ]
 
   task_environment = {

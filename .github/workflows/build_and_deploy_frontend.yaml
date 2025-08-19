@@ -1,0 +1,62 @@
+name: Build and Deploy Frontend Services
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'frontend/**'
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  detect:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get Changed Backend Services
+        id: set-matrix
+        run: |
+          echo "Detecting changed frontend services..."
+          SERVICES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
+            grep '^frontend/' | \
+            grep -Ev '^frontend/env/' | \
+            awk -F/ '{print $2}' | \
+            sort -u | \
+            grep -v '^$')  # remove empty lines
+
+          echo "Changed services:"
+          echo "$SERVICES"
+
+          if [ -z "$SERVICES" ]; then
+            JSON="[]"
+          else
+            # force jq to emit compact JSON (no newlines/indent)
+            JSON=$(echo "$SERVICES" | jq -R . | jq -s -c .)
+          fi
+
+          echo "matrix=$JSON" >> $GITHUB_OUTPUT        
+
+  build:
+    name: Build & Push ${{ matrix.service }}
+    needs: detect
+    runs-on: ubuntu-latest
+    if: needs.detect.outputs.matrix != '[]'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect.outputs.matrix) }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      -    

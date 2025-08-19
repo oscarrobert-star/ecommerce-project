@@ -12,7 +12,7 @@ logger = logging.getLogger("order_service")
 
 
 def health_check(request):
-    logging.info("Health check initiated")
+    # logging.info("Health check initiated")
     databases = ["default", "replica"]  # 'default' = write DB, 'replica' = read DB
     status = {}
 

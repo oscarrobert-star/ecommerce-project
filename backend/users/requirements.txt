@@ -13,3 +13,5 @@ six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.13.1
 urllib3==2.4.0
+boto3
+aws-secretsmanager-caching

@@ -19,10 +19,10 @@ from django.urls import path
 from .views import SignupView, LoginView, ProfileView, ConfirmSignupView, LogoutView, health_check
 
 urlpatterns = [
-    path('users/signup/', SignupView.as_view(), name='signup'),
-    path('users/login/', LoginView.as_view(), name='login'),
-    path('users/profile/', ProfileView.as_view(), name='profile'),
-    path('users/confirm-signup/', ConfirmSignupView.as_view(), name='confirm'),
-    path('users/logout/', LogoutView.as_view, name='logout'),
-    path('users/health/', view=health_check, name='health_check'),
+    path('users/signup', SignupView.as_view(), name='signup'),
+    path('users/login', LoginView.as_view(), name='login'),
+    path('users/profile', ProfileView.as_view(), name='profile'),
+    path('users/confirm-signup', ConfirmSignupView.as_view(), name='confirm'),
+    path('users/logout', LogoutView.as_view, name='logout'),
+    path('users/health', view=health_check, name='health_check'),
 ]

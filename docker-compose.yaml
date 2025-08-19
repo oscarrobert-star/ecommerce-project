@@ -81,14 +81,17 @@ services:
     command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend/orders:/app
+      - ~/.aws:/root/.aws:ro
     ports:
       - "8000:8000"  
     depends_on:
       - postgres
     environment:
       - DB_NAME=ecommerce
-      - DB_USER=ecommerce_user
-      - DB_PASSWORD=strongpassword
+      - AWS_REGION=us-east-2
+      # - DB_USER=ecommerce_user
+      # - DB_PASSWORD=strongpassword
+      - DB_SECRET_ARN=arn:aws:secretsmanager:us-east-2:071046007207:secret:localhost_database-9CHIvH
       - DB_HOST=postgres  
       - DB_PORT=5432
     labels:

@@ -21,7 +21,7 @@ from . import views
 from rest_framework.routers import DefaultRouter
 
 
-router = DefaultRouter()
+router = DefaultRouter(trailing_slash=False)
 router.register(r'orders', OrderViewSet, basename='order')
 
 order_detail = OrderViewSet.as_view({

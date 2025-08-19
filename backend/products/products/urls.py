@@ -22,7 +22,7 @@ from products.views import ProductViewSet
 from .views import BulkProductCreateView
 
 # Create a router and register your viewsets
-router = DefaultRouter()
+router = DefaultRouter(trailing_slash=False)
 router.register(r'products', ProductViewSet)
 
 urlpatterns = [
