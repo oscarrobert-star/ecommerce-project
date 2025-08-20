@@ -1,11 +1,11 @@
 name: Build and Deploy Frontend Services
 
-on:
-  push:
-    branches:
-      - develop
-    paths:
-      - 'frontend/**'
+# on:
+#   push:
+#     branches:
+#       - develop
+#     paths:
+#       - 'frontend/**'
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
