@@ -1,5 +1,9 @@
 # E-Commerce Platform on AWS
 
+> <mark>**Note:** There is a story behind this Project. You'd want to read through it to get a sense of how I reached the conclusions for some technical decisions. Also, it gives you a better perspecitve on my thought process as I worked on it. 
+Have a read on my [dev.to page](https://dev.to/oscarrobertstar/reverse-learning-with-ai-breaking-down-ai-generated-business-cases-into-technical-solutions-42bb). I'd love to hear your thoughts on it as you follow through this series.</mark>
+
+
 ## Architecture Overview
 ![AWS Architecture Diagram](docs/images/architecture.png)
 *Figure 1: High-level architecture of the e-commerce platform on AWS*
