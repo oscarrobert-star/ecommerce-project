@@ -22,7 +22,7 @@ locals {
   ]
 
   payments_secrets = [
-    { name = "PAYSTACK_SECRET_KEY", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/paystack_secret_key" },
+    { name = "PAYSTACK_SECRET_KEY", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/paystack/secret_key" },
     { name = "PAYMENT_CALLBACK", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/payment_callback_url" }
   ]
 

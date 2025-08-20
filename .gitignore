@@ -25,6 +25,7 @@ pip-delete-this-directory.txt
 # dotenv
 .env*
 !.env.example
+backend/**/.env
 
 # Log files
 *.log
