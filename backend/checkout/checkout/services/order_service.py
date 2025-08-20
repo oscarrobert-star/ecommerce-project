@@ -30,7 +30,7 @@ import requests
 # from django.conf import settings
 # from django.http import JsonResponse, HttpResponse
 ORDERS_SERVICE_URL = os.environ.get("ORDERS_SERVICE_URL")
-url = f"{ORDERS_SERVICE_URL}/orders/"
+url = f"{ORDERS_SERVICE_URL}/orders"
 # url = "http://localhost:8002/orders/"  # Replace with your actual orders service URL
 # TODO: add service to serive autentication
 def create_order(email, items, total_amount):

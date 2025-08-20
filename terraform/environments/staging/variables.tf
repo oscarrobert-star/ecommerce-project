@@ -18,3 +18,10 @@ variable "db_password" {
   sensitive = true
   default     = "strongPassword!23"
 }
+
+variable "env" {
+    description = "Environment name (e.g., dev, staging, prod)"
+    type        = string
+    default     = "dev"
+  
+}

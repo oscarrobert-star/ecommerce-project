@@ -22,8 +22,8 @@ locals {
   ]
 
   payments_secrets = [
-    { name = "PAYSTACK_SECRET_KEY", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/paystack_secret_key" },
-    { name = "PAYMENT_CALLBACK", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/payment_callback_url" }
+    { name = "PAYSTACK_SECRET_KEY", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/paystack_secret_key" },
+    { name = "PAYMENT_CALLBACK", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/payment_callback_url" }
   ]
 
   #   payments_extra_env = [
@@ -32,8 +32,8 @@ locals {
   #   ]
 
   checkout_extra_env = [
-    { name = "ORDERS_SERVICE_URL", value = module.vpc.alb_dns_name },
-    { name = "PAYMENT_SERVICE_URL", value = module.vpc.alb_dns_name }
+    { name = "ORDERS_SERVICE_URL", value = "http://${module.vpc.alb_dns_name}" },
+    { name = "PAYMENT_SERVICE_URL", value = "http://${module.vpc.alb_dns_name}" }
   ]
 
   cart_env = [

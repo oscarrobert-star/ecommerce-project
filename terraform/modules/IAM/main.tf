@@ -92,6 +92,13 @@ resource "aws_iam_policy" "ecs_task_policy" {
         "secretsmanager:DescribeSecret"
       ]
       Resource = "*"
+    },
+    {
+      Effect = "Allow"
+      Action = [
+        "ssm:GetParameters"
+        ]
+      Resource = "*"  
     }
     ]
   })

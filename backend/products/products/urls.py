@@ -26,8 +26,8 @@ router = DefaultRouter(trailing_slash=False)
 router.register(r'products', ProductViewSet)
 
 urlpatterns = [
-    path('products/health/', views.health_check, name='health_check'),
-    path('products/bulk/', BulkProductCreateView.as_view(), name='bulk-create-products'),
+    path('products/health', views.health_check, name='health_check'),
+    path('products/bulk', BulkProductCreateView.as_view(), name='bulk-create-products'),
     path('', include(router.urls)),
     
 ]
