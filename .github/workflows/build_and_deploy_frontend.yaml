@@ -1,11 +1,11 @@
 name: Build and Deploy Frontend Services
 
-# on:
-#   push:
-#     branches:
-#       - develop
-#     paths:
-#       - 'frontend/**'
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'frontend/**'
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -58,7 +58,6 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-        runs-on: ubuntu-latest
         
       - name: Set up Node.js
         uses: actions/setup-node@v4
