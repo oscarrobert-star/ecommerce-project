@@ -19,7 +19,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from products.views import ProductViewSet
-from .views import BulkProductCreateView
+from .views import BulkProductCreateView, S3PresignedUrlView
 
 # Create a router and register your viewsets
 router = DefaultRouter(trailing_slash=False)
@@ -28,6 +28,7 @@ router.register(r'products', ProductViewSet)
 urlpatterns = [
     path('products/health', views.health_check, name='health_check'),
     path('products/bulk', BulkProductCreateView.as_view(), name='bulk-create-products'),
+    path('products/get-signed-url', S3PresignedUrlView.as_view(), name='get-signed-url'),
     path('', include(router.urls)),
     
 ]

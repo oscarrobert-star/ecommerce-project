@@ -56,7 +56,7 @@ export default function CheckoutPage() {
         };
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/checkout/`, {
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/checkout`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

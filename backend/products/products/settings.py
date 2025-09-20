@@ -47,7 +47,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -55,7 +57,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'products.middleware.APILoggingMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
 ]
 APPEND_SLASH = False
 
@@ -77,6 +78,7 @@ CORS_ALLOW_HEADERS = [
     'content-type',
     'Authorization',
     'x-requested-with',
+    'Access-Control-Allow-Origin'
     # Add any other headers you need
 ]
 

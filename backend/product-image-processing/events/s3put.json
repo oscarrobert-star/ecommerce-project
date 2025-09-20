@@ -1,0 +1,20 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-east-1",
+      "s3": {
+        "bucket": {
+          "name": "okiyalabs-shop-src-images",
+          "arn": "arn:aws:s3:::okiyalabs-shop-src-images"
+        },
+        "object": {
+          "key": "laptops3.webp",
+          "size": 1024,
+          "eTag": "b346d0e6c5c065e94b15d2a7c4f44c68"
+        }
+      }
+    }
+  ]
+}

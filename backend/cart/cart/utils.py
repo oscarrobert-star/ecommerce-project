@@ -30,7 +30,19 @@
 import uuid
 
 def get_cart_id(request):
-    cart_id = request.headers.get("X-Cart-ID")
+    """
+    Retrieves the cart ID from the request or generates a new one.
+    If a user is authenticated, the cart ID is linked to their user ID.
+    Otherwise, a new UUID is generated and returned in a custom header.
+    """
+    # Use the user's ID as the cart ID if authenticated
+    if request.user.is_authenticated:
+        return str(request.user.id)
+    
+    # For unauthenticated users, get the cart ID from the custom header
+    cart_id = request.headers.get('x-cart-id')
     if not cart_id:
+        # Generate a new UUID if no cart ID is provided
         cart_id = str(uuid.uuid4())
+    
     return cart_id

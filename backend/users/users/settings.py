@@ -98,17 +98,22 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
-    "http://client.localhost",  # your React frontend
-    "http://admin.localhost",  # your Django admin frontend
-] 
+    "http://client.localhost",
+    "http://admin.localhost",
+    "http://api.localhost",
+    # ✅ Add the missing origin from your error message
+    "http://localhost:9000", 
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
-    "http://client.localhost",  # your React frontend
-    "http://admin.localhost", 
+    "http://client.localhost",
+    "http://admin.localhost",
+    # ✅ Add the missing origin
+    "http://localhost:9000",
 ]
 
 ROOT_URLCONF = 'users.urls'

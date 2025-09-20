@@ -12,6 +12,7 @@ import Signup from "./pages/Signup";
 import Customers from "./pages/Customers"; 
 import AddProduct from "./pages/AddProduct";
 import ConfirmSignup from "./pages/ConfirmSignup";
+import ProductDetail from "./pages/ProductDetail";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -27,6 +28,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/customers" element={<Customers />} />
         <Route path="/products/add" element={<AddProduct />} />
         <Route path="/confirm-signup" element={<ConfirmSignup />} />
+        <Route path="/products/:id" element={<ProductDetail />} />
       </Routes>
     </Router>
   </React.StrictMode>

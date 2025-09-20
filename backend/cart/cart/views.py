@@ -182,3 +182,23 @@ def health_check(request):
     except Exception as e:
         logging.exception(f"Health check failed with error {e}")
         return JsonResponse({'status': 'error', 'details': str(e)}, status=500)
+
+def get_cart_ttl(request):
+    """
+    Returns the remaining time-to-live for the current cart.
+    """
+    try:
+        cart_id = get_cart_id(request)
+        redis_key = f"cart:{cart_id}"
+        ttl = redis_client.ttl(redis_key)
+        
+        # Redis returns -1 if the key exists but has no associated expire.
+        # It returns -2 if the key does not exist.
+        if ttl < 0:
+            ttl = 0
+            
+        logging.info(f"TTL for cart {cart_id} is {ttl} seconds.")
+        return JsonResponse({'ttl': ttl})
+    except Exception as e:
+        logging.exception("Failed to get cart TTL")
+        return JsonResponse({'error': str(e)}, status=500)        

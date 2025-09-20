@@ -9,6 +9,8 @@ from django.utils.decorators import method_decorator
 from . import cognito
 from .models import Customer, AdminUser
 from django.http import JsonResponse
+from .serializers import CustomerSerializer 
+from rest_framework import viewsets
 
 logger = logging.getLogger(__name__)
 
@@ -169,3 +171,7 @@ def health_check(request):
     """
     logger.info("Health check request received")
     return JsonResponse({"status": "ok"}, status=status.HTTP_200_OK)        
+
+class CustomerViewSet(viewsets.ModelViewSet):
+    queryset = Customer.objects.all().order_by("full_name")
+    serializer_class = CustomerSerializer

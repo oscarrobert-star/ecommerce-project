@@ -47,8 +47,8 @@ services:
     command: npm run dev -- --host
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://api.localhost/products
-      - VITE_AUTH_API_URL=http://api.localhost/users
+      - VITE_API_URL=http://api.localhost
+      - VITE_AUTH_API_URL=http://api.localhost
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.admin.rule=Host(`admin.localhost`)"
@@ -86,6 +86,7 @@ services:
       - "8000:8000"  
     depends_on:
       - postgres
+      - traefik
     environment:
       - DB_NAME=ecommerce
       - AWS_REGION=us-east-2
@@ -110,6 +111,7 @@ services:
       - ~/.aws:/root/.aws:ro
     depends_on:
       - postgres
+      - traefik
     environment:
       - DB_NAME=ecommerce
       # - DB_USER=ecommerce_user
@@ -118,6 +120,7 @@ services:
       - AWS_REGION=us-east-2
       - DB_HOST=postgres  
       - DB_PORT=5432
+      - IMAGE_BUCKET_NAME=okiyalabs-shop-src-images
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.products.rule=Host(`api.localhost`) && PathPrefix(`/products`)"
@@ -201,6 +204,29 @@ services:
       - "traefik.http.routers.checkout.middlewares=checkout-stripprefix"
       - "traefik.http.middlewares.checkout-stripprefix.stripprefix.prefixes="
       - "traefik.http.services.checkout.loadbalancer.server.port=8000"
+
+  notification-service: 
+    build: ./backend/notifications
+    container_name: notifications-service
+    command: python manage.py runserver 0.0.0.0:8000
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend/notifications:/app
+      - ~/.aws:/root/.aws:ro
+    environment:
+      - AWS_REGION=us-east-1
+      - DB_NAME=ecommerce
+      - DB_USER=ecommerce_user
+      - DB_PASSWORD=strongpassword
+      - DB_HOST=postgres  
+      - DB_PORT=5432 
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notifications.rule=Host(`api.localhost`) && PathPrefix(`/notifications`)"
+      - "traefik.http.routers.notifications.middlewares=notifications-stripprefix"
+      - "traefik.http.middlewares.notifications-stripprefix.stripprefix.prefixes="
+      - "traefik.http.services.notifications.loadbalancer.server.port=8000"    
 
 volumes:
   pgdata:

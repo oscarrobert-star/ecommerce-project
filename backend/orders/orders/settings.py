@@ -80,11 +80,15 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CORS_ALLOWED_ORIGINS = [
     "http://client.localhost",  
     "http://admin.localhost",  
+    "http://localhost:9000",
+    "http://api.localhost", 
 ] 
 
 CSRF_TRUSTED_ORIGINS = [
     "http://client.localhost",  
     "http://admin.localhost", 
+    "http://localhost:9000",
+
 ]
 
 TEMPLATES = [

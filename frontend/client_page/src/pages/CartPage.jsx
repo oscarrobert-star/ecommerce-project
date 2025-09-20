@@ -14,7 +14,7 @@ export default function CartPage() {
 
     const fetchCart = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart/`, {
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart`, {
                 method: "GET",
                 headers: {
                     "x-cart-id": cartId || "",
@@ -47,7 +47,7 @@ export default function CartPage() {
 
     const removeFromCart = async (productId) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart/remove/`, {
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart/remove`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
