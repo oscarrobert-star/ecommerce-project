@@ -75,7 +75,7 @@ def add_to_cart(request):
         redis_client.hset(redis_key, product_id, json.dumps(item_data))
         redis_client.expire(redis_key, getattr(settings, "CART_TTL_SECONDS", 300))
 
-        logging.info(f"Item {product_id} added to cart {cart_id} with quantity {quantity}")
+        # logging.info(f"Item {product_id} added to cart {cart_id} with quantity {quantity}")
         return JsonResponse({'message': 'Item added', 'cart_id': cart_id})
 
     except Exception as e:
@@ -98,7 +98,7 @@ def get_cart(request):
         except Exception:
             continue
 
-    logging.info(f"Cart {cart_id} retrieved with items: {items}")
+    # logging.info(f"Cart {cart_id} retrieved with items: {items}")
     return JsonResponse({'cart_id': cart_id, 'items': items})
 
 
@@ -114,7 +114,7 @@ def remove_from_cart(request):
 
         redis_key = f"cart:{cart_id}"
         redis_client.hdel(redis_key, product_id)
-        logging.info(f"Item {product_id} removed from cart {cart_id}")
+        # logging.info(f"Item {product_id} removed from cart {cart_id}")
         return JsonResponse({'message': 'Item removed', 'cart_id': cart_id})
     except Exception as e:
         logging.exception("Failed to remove item from cart")

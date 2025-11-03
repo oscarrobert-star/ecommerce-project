@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 from users.database_configs import get_database_config
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,7 +41,7 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),  # Default INFO
+        'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),  # Default INFO
     },
 }
 
@@ -65,11 +66,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework_simplejwt',
     'users',
     'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'users.debug_middleware.DebugAuthenticationMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -93,6 +96,18 @@ CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -101,10 +116,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://client.localhost",
     "http://admin.localhost",
     "http://api.localhost",
-    # ✅ Add the missing origin from your error message
     "http://localhost:9000", 
 ]
 
+# CSRF settings
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = False
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -115,6 +133,12 @@ CSRF_TRUSTED_ORIGINS = [
     # ✅ Add the missing origin
     "http://localhost:9000",
 ]
+
+
+# Cookie settings
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 
 ROOT_URLCONF = 'users.urls'
 
@@ -189,6 +213,23 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # some work to do with AWS Cognito
-AWS_COGNITO_USER_POOL_ID = 'us-east-2_z85bK6N7O'
-AWS_COGNITO_CLIENT_ID = '4r7ckqqirortv6hsd9errc5375'
-AWS_COGNITO_REGION = 'us-east-2'
+AWS_COGNITO_USER_POOL_ID = os.environ.get('AWS_COGNITO_USER_POOL_ID')
+AWS_COGNITO_CLIENT_ID = os.environ.get('AWS_COGNITO_CLIENT_ID')
+AWS_COGNITO_REGION = os.environ.get('AWS_REGION', 'us-east-2')
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'users.authentication.CognitoCookieAuthentication',  # Fixed path
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    )
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'AUTH_COOKIE': 'access_token',  # Name of your access token cookie
+}

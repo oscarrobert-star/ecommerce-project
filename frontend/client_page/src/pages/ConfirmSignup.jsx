@@ -14,7 +14,7 @@ export default function ConfirmSignup() {
     setError("");
 
     try {
-      await axios.post(`${import.meta.env.VITE_AUTH_API_URL}/users/confirm-signup/`, {
+      await axios.post(`${import.meta.env.VITE_AUTH_API_URL}/users/confirm-signup`, {
         username,
         code
       }, {

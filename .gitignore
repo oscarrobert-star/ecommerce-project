@@ -18,6 +18,8 @@ env/
 ENV/
 backend/env/*
 backend/.env
+frontend/admin_page/*
+frontend/client_page/*
 # Virtualenvs
 pip-log.txt
 pip-delete-this-directory.txt

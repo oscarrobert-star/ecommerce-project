@@ -33,7 +33,7 @@ const OrderConfirmationPage = () => {
         const fetchOrderStatus = async () => {
             try {
                 const response = await fetch(
-                    `${import.meta.env.VITE_BASE_URL}/orders/status/${reference}/`
+                    `${import.meta.env.VITE_BASE_URL}/orders/status/${reference}`
                 );
 
                 if (!response.ok) {

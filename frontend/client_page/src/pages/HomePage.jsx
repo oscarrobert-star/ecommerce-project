@@ -58,7 +58,7 @@ export default function HomePage() {
         const cartId = getOrCreateCartId();
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart/add/`, {
+            const response = await fetch(`${import.meta.env.VITE_BASE_URL}/cart/add`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

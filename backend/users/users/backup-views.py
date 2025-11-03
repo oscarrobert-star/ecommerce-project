@@ -1,108 +1,22 @@
 import logging
-import json
-import base64
-import time
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.authentication import SessionAuthentication, BaseAuthentication
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.exceptions import AuthenticationFailed
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.http import JsonResponse
-from rest_framework import viewsets
-from django.db import IntegrityError
-
-# --- Actual Imports ---
 from . import cognito
 from .models import Customer, AdminUser
+from django.http import JsonResponse
 from .serializers import CustomerSerializer, AdminUserSerializer
+from rest_framework import viewsets
+from django.db import IntegrityError
 from .permissions import IsAdminUser
+from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import AuthenticationFailed
 
 logger = logging.getLogger(__name__)
-
-# ========================================================================
-# --- Custom Authentication Classes for Cookie-Based JWT ---
-# ========================================================================
-
-class AuthenticatedUser:
-    """A minimal user class required by DRF for request.user."""
-    def __init__(self, username):
-        self.username = username
-        self.is_authenticated = True
-
-    def __str__(self):
-        return self.username
-
-    @property
-    def is_staff(self):
-        return False
-
-class CookieTokenValidator:
-    """
-    Conceptual validation layer.
-    
-    WARNING: This implementation uses local base64/JSON decoding only and
-    bypasses cryptographic signature verification and public key lookups
-    (JWKS), which is essential for security. Replace this with a full
-    PyJWT implementation that verifies the signature against Cognito's
-    JWKS endpoint in production.
-    """
-    @staticmethod
-    def extract_username(token):
-        try:
-            parts = token.split('.')
-            if len(parts) != 3:
-                return None
-            
-            payload_str = parts[1]
-            # Handle padding for URL-safe base64 decoding
-            padding = len(payload_str) % 4
-            if padding > 0:
-                payload_str += '=' * (4 - padding)
-                
-            payload_decoded = base64.urlsafe_b64decode(payload_str)
-            payload = json.loads(payload_decoded)
-
-            # Check Expiry (exp claim)
-            if payload.get('exp') and payload['exp'] < time.time():
-                logger.warning("Token expired.")
-                return None
-            
-            # Extract the username (Cognito standard claims)
-            username = payload.get('username') or payload.get('email')
-            return username
-
-        except Exception as e:
-            logger.error(f"Token decoding/extraction failed: {e}")
-            return None
-
-
-class CognitoCookieAuthentication(BaseAuthentication):
-    """
-    Custom DRF Authentication to validate the Cognito Access Token from a cookie.
-    """
-    def authenticate(self, request):
-        access_token = request.COOKIES.get('access_token')
-
-        if not access_token:
-            return None 
-
-        # Validate token and get username
-        username = CookieTokenValidator.extract_username(access_token)
-        
-        if username:
-            logger.info(f"Token successfully validated for user: {username}")
-            # Return the user object and None for the token
-            return (AuthenticatedUser(username), None)
-        
-        # Token is invalid (expired, tampered, etc.)
-        raise AuthenticationFailed('Token invalid or expired.')
-
-# ========================================================================
-# --- View Definitions ---
-# ========================================================================
 
 class SignupView(APIView):
     permission_classes = [AllowAny]
@@ -143,7 +57,6 @@ class SignupView(APIView):
         return Response({"message": "Signup successful. Confirm via email."})
 
 class AdminInviteView(APIView):
-    authentication_classes = [CognitoCookieAuthentication] # Secured with custom auth
     permission_classes = [IsAuthenticated, IsAdminUser]
     def post(self, request):
         email = request.data.get("email")
@@ -178,6 +91,7 @@ class AdminInviteView(APIView):
             return Response({"error": "User already exists."}, status=400)
         
         # Email with temporary password would be sent here
+        # Note: You would need to implement a separate email service for this
         
         return Response({"message": "Admin user invited successfully. They will receive an email to set their password."})
 
@@ -185,13 +99,8 @@ class ConfirmSignupView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
         logger.info("Confirm signup request received")
-        # FIX: Use .get() and expect 'username' key (as sent by client) instead of 'email'
-        username = request.data.get('email')
-        code = request.data.get('code')
-        
-        if not username or not code:
-            return Response({"error": "Username (email) and confirmation code are required."}, status=400)
-
+        username = request.data['email']
+        code = request.data['code']
         logger.debug(f"Confirm signup details - Username: {username}")
 
         result = cognito.confirm_signup(username, code)
@@ -276,7 +185,7 @@ class LoginView(APIView):
             "refresh_token": result.get('refresh_token')
         })
 
-        # Set new cookies with the fresh tokens (SameSite=None; Secure=True is correct for cross-site)
+        # Set new cookies with the fresh tokens
         if 'access_token' in result:
             response.set_cookie(
                 key="access_token",
@@ -302,28 +211,31 @@ class LoginView(APIView):
                 key="refresh_token",
                 value=result['refresh_token'],
                 httponly=True,
-                secure=True,     
+                secure=True,     # CHANGED TO TRUE
                 samesite="None",
                 max_age=30*24*3600  # 30 days
             )
         return response
     
 class ProfileView(APIView):
-    # FIX: Use the custom authentication class to read and validate the cookie
-    authentication_classes = [CognitoCookieAuthentication] 
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         logger.info("=== Profile View Debug ===")
-        # request.user is now populated by CognitoCookieAuthentication
-        username = getattr(request.user, 'username', 'No username')
         logger.info(f"User authenticated: {request.user.is_authenticated}")
-        logger.info(f"User username: {username}")
+        logger.info(f"User username: {getattr(request.user, 'username', 'No username')}")
+        
+        # Log all cookies
+        logger.info("Cookies received:")
+        for cookie_name, cookie_value in request.COOKIES.items():
+            logger.info(f"  {cookie_name}: {'Present' if cookie_value else 'Empty/Missing'}")
 
-        if not username or not request.user.is_authenticated:
-            logger.error("User object missing username attribute or not authenticated")
+        # Check if user has the expected attributes
+        if not hasattr(request.user, 'username') or not request.user.username:
+            logger.error("User object missing username attribute")
             return Response({"error": "User authentication incomplete"}, status=401)
 
+        username = request.user.username
         logger.info(f"Looking up profile for username: {username}")
 
         try:
@@ -369,12 +281,9 @@ class LogoutView(APIView):
 
     def post(self, request):
         response = Response({"message": "Logged out successfully"})
-        
-        # Ensure SameSite=None and Secure=True are used when deleting cookies 
-        # to match how they were set, ensuring the browser accepts the deletion.
-        response.delete_cookie("access_token", samesite="None", secure=True)
-        response.delete_cookie("id_token", samesite="None", secure=True)
-        response.delete_cookie("refresh_token", samesite="None", secure=True)
+        response.delete_cookie("access_token")
+        response.delete_cookie("id_token")
+        response.delete_cookie("refresh_token")
         return response
 
 def health_check(request):
@@ -387,8 +296,6 @@ def health_check(request):
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all().order_by("full_name")
     serializer_class = CustomerSerializer
-    # FIX: Apply custom authentication
-    authentication_classes = [CognitoCookieAuthentication] 
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def destroy(self, request, *args, **kwargs):
@@ -409,8 +316,6 @@ class CustomerViewSet(viewsets.ModelViewSet):
 class AdminUserViewSet(viewsets.ModelViewSet):
     queryset = AdminUser.objects.all().order_by("username")
     serializer_class = AdminUserSerializer
-    # FIX: Apply custom authentication
-    authentication_classes = [CognitoCookieAuthentication]
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def destroy(self, request, *args, **kwargs):
@@ -427,3 +332,30 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         
         # Then, proceed with local database deletion
         return super().destroy(request, *args, **kwargs)
+
+# class CognitoCookieAuthentication(BaseAuthentication):
+#     def authenticate(self, request):
+#         access_token = request.COOKIES.get("access_token")
+#         if not access_token:
+#             return None
+
+#         try:
+#             # Verify JWT against Cognito public keys
+#             payload = jwt.decode(
+#                 access_token,
+#                 options={"verify_signature": False}  # ⚠️ for testing only, replace with real JWKS verification
+#             )
+#             username = payload.get("username") or payload.get("cognito:username")
+#             if not username:
+#                 raise AuthenticationFailed("Invalid token: no username")
+
+#             # Attach Django user-like object
+#             from django.contrib.auth.models import AnonymousUser
+#             user = AnonymousUser()
+#             user.is_authenticated = True
+#             user.username = username
+#             return (user, None)
+#         except jwt.ExpiredSignatureError:
+#             raise AuthenticationFailed("Token expired")
+#         except Exception as e:
+#             raise AuthenticationFailed(str(e))

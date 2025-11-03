@@ -70,3 +70,20 @@ module "api-integrations" {
   api_endpoints = local.api_endpoint
   tags = local.tags
 }
+
+module "cognito" {
+  source = "../../modules/cognito"
+
+  environment = "dev"
+  project_name = "ecommerce"
+  
+  # Development-specific settings
+  password_minimum_length = 6
+  password_require_symbols = false
+  mfa_configuration = "OFF"
+  
+  callback_urls = [
+    # "http://admin.localhost",
+    # "http://client.localhost",
+  ]
+}

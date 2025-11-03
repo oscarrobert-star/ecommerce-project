@@ -35,45 +35,79 @@ services:
       - redisdata:/data
     restart: unless-stopped
 
-  admin:
-    container_name: admin_frontend
+  # admin:
+  #   container_name: admin_frontend
+  #   build:
+  #     context: ./frontend/admin_page
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./frontend/admin_page:/app
+  #     - /app/node_modules
+  #   working_dir: /app
+  #   command: npm run dev -- --host
+  #   environment:
+  #     - NODE_ENV=development
+  #     - VITE_API_URL=http://api.localhost
+  #     - VITE_AUTH_API_URL=http://api.localhost
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.admin.rule=Host(`admin.localhost`)"
+  #     - "traefik.http.services.admin.loadbalancer.server.port=5173"
+
+  admin2:
+    container_name: admin
     build:
-      context: ./frontend/admin_page
+      context: ./frontend/admin
       dockerfile: Dockerfile
     volumes:
-      - ./frontend/admin_page:/app
+      - ./frontend/admin:/app
       - /app/node_modules
     working_dir: /app
     command: npm run dev -- --host
-    environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://api.localhost
-      - VITE_AUTH_API_URL=http://api.localhost
+    # environment:
+    #   - NODE_ENV=development
+    #   - VITE_API_URL=http://api.localhost
+    #   - VITE_AUTH_API_URL=http://api.localhost
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.admin.rule=Host(`admin.localhost`)"
-      - "traefik.http.services.admin.loadbalancer.server.port=5173"
+      - "traefik.http.services.admin.loadbalancer.server.port=8080"    
 
-  client:
-    container_name: client_frontend
+  # client:
+  #   container_name: client_frontend
+  #   build:
+  #     context: ./frontend/client_page
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./frontend/client_page:/app
+  #     - /app/node_modules
+  #   working_dir: /app
+  #   command: npm run dev -- --host
+  #   environment:
+  #     - NODE_ENV=development
+  #     - VITE_AUTH_API_URL=http://api.localhost/users
+  #     - VITE_CART_URL=http://api.localhost/cart
+  #     - VITE_CHECKOUT_URL=http://api.localhost/checkout
+  #     - VITE_BASE_URL=http://api.localhost
+  #   labels:
+  #     - "traefik.enable=true"
+  #     - "traefik.http.routers.client.rule=Host(`client.localhost`)"
+  #     - "traefik.http.services.client.loadbalancer.server.port=5173"
+
+  client2:
+    container_name: client
     build:
-      context: ./frontend/client_page
+      context: ./frontend/client
       dockerfile: Dockerfile
     volumes:
-      - ./frontend/client_page:/app
+      - ./frontend/client:/app
       - /app/node_modules
     working_dir: /app
     command: npm run dev -- --host
-    environment:
-      - NODE_ENV=development
-      - VITE_AUTH_API_URL=http://api.localhost/users
-      - VITE_CART_URL=http://api.localhost/cart
-      - VITE_CHECKOUT_URL=http://api.localhost/checkout
-      - VITE_BASE_URL=http://api.localhost
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.client.rule=Host(`client.localhost`)"
-      - "traefik.http.services.client.loadbalancer.server.port=5173"
+      - "traefik.http.services.client.loadbalancer.server.port=8080"     
 
   order-service:
     build: ./backend/orders
@@ -137,15 +171,21 @@ services:
       - ~/.aws:/root/.aws:ro
     depends_on:
       - postgres
+      - traefik
     environment:
       - DB_NAME=ecommerce
       - DB_USER=ecommerce_user
       - DB_PASSWORD=strongpassword
       - DB_HOST=postgres  
       - DB_PORT=5432
+      - AWS_REGION=us-east-2
+      - AWS_COGNITO_USER_POOL_ID=us-east-2_7zxwKH5V5
+      - AWS_COGNITO_CLIENT_ID=4f654pdqo50spmasbo9i8df286
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.users.rule=Host(`api.localhost`) && PathPrefix(`/users`)"
+      - "traefik.http.routers.users.rule=Host(`api.localhost`) && (PathPrefix(`/users`) || PathPrefix(`/customers`) || PathPrefix(`/admins`))"
       - "traefik.http.routers.users.middlewares=users-stripprefix"
       - "traefik.http.middlewares.users-stripprefix.stripprefix.prefixes="
       - "traefik.http.services.users.loadbalancer.server.port=8000"
@@ -154,6 +194,8 @@ services:
     build: ./backend/payments
     container_name: payment-service
     command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/payments:/app
     depends_on:
       - postgres
     environment:
@@ -175,6 +217,8 @@ services:
     build: ./backend/cart
     container_name: cart-service
     command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend/cart:/app
     depends_on:
       - redis
     environment:
@@ -195,6 +239,8 @@ services:
     environment:
       - ORDERS_SERVICE_URL=http://order-service:8000
       - PAYMENT_SERVICE_URL=http://payment-service:8000
+    volumes:
+      - ./backend/checkout:/app  
     depends_on:
       - order-service
       - payment-service  
