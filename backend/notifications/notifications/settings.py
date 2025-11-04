@@ -139,7 +139,6 @@ CORS_ALLOW_METHODS = [
     'OPTIONS',  # Ensure OPTIONS is allowed for preflight
 ]
 
-
 CORS_ALLOW_HEADERS = list(default_headers) + [
     # 'x-cart-id',  
 ]
