@@ -82,14 +82,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://admin.localhost",  
     "http://localhost:9000",
     "http://api.localhost", 
-] 
+]  + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://client.localhost",  
     "http://admin.localhost", 
     "http://localhost:9000",
 
-]
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 TEMPLATES = [
     {

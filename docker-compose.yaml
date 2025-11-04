@@ -129,6 +129,7 @@ services:
       - DB_SECRET_ARN=arn:aws:secretsmanager:us-east-2:071046007207:secret:localhost_database-9CHIvH
       - DB_HOST=postgres  
       - DB_PORT=5432
+      - PRODUCT_SERVICE_URL=http://product-service:8000/products
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.orders.rule=Host(`api.localhost`) && PathPrefix(`/orders`)"
@@ -155,6 +156,8 @@ services:
       - DB_HOST=postgres  
       - DB_PORT=5432
       - IMAGE_BUCKET_NAME=okiyalabs-shop-src-images
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.products.rule=Host(`api.localhost`) && PathPrefix(`/products`)"
@@ -205,7 +208,7 @@ services:
       - DB_HOST=postgres  
       - DB_PORT=5432    
       - PAYSTACK_SECRET_KEY=sk_test_3d3a69512e465c85fb29b3bedc14ab77d6b943ae
-      - PAYMENT_CALLBACK=https://da94-197-248-143-155.ngrok-free.app
+      - PAYMENT_CALLBACK=https://f7b6ff541e29.ngrok-free.app
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.payments.rule=Host(`api.localhost`) && PathPrefix(`/payments`)"

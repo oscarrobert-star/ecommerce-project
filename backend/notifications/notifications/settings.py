@@ -147,13 +147,12 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 CORS_ALLOWED_ORIGINS = [
     "http://client.localhost",  
     "http://admin.localhost",  
-] 
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://client.localhost",  
     "http://admin.localhost", 
-]
-
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 from rest_framework.renderers import JSONRenderer
 
 class PrettyJSONRenderer(JSONRenderer):

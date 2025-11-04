@@ -7,19 +7,19 @@ class DebugAuthenticationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Log incoming request details
-        logger.debug("=== Incoming Request ===")
-        logger.debug(f"Path: {request.path}")
-        logger.debug(f"Method: {request.method}")
-        logger.debug("Headers:")
-        for header, value in request.headers.items():
-            if header.lower() in ['authorization', 'cookie']:
-                logger.debug(f"  {header}: {value}")
+        # Log minimal request details without sensitive headers/cookies
         
-        logger.debug("Cookies:")
-        for cookie, value in request.COOKIES.items():
-            if 'token' in cookie.lower():
-                logger.debug(f"  {cookie}: {'Present' if value else 'Missing'}")
-
+        # logger.debug("=== Incoming Request ===")
+        # logger.debug(f"Path: {request.path}")
+        # logger.debug(f"Method: {request.method}")
+        
+        # --- Logging sensitive headers is now skipped ---
+        # for header, value in request.headers.items():
+        #     if header.lower() in ['authorization', 'cookie']:
+        #         # We skip logging the value for sensitive headers
+        #         logger.debug(f"  {header}: {'[REDACTED]'}")
+        #     else:
+        #         logger.debug(f"  {header}: {value}")
+        
         response = self.get_response(request)
         return response

@@ -51,12 +51,12 @@ CORS_ALLOW_METHODS = [
 CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:9000",       # ✅ Add this line
+    "http://localhost:9000",       
     "http://127.0.0.1:9000",
     "http://client.localhost",
     "http://admin.localhost",
     "http://api.localhost",
-]
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 CSRF_TRUSTED_ORIGINS = [
     # "http://localhost:5173",
@@ -65,7 +65,7 @@ CSRF_TRUSTED_ORIGINS = [
    "http://api.localhost", 
     "http://client.localhost",  # your React frontend
     "http://admin.localhost", 
-]
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 # Application definition
 
@@ -199,4 +199,4 @@ LOGGING = {
 
 REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
 REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
-CART_TTL_SECONDS = os.environ.get('CART_TTL_SECONDS', 300)  # Default to 5 minutes
+CART_TTL_SECONDS = os.environ.get('CART_TTL_SECONDS', 900)  # Default to 15 minutes

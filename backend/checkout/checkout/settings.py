@@ -109,7 +109,7 @@ CORS_ALLOWED_ORIGINS = [
     # "http://127.0.0.1:5174",
     "http://client.localhost",  # your React frontend
     "http://admin.localhost",  # your Django admin frontend
-] 
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 CSRF_TRUSTED_ORIGINS = [
     # "http://localhost:5173",
@@ -118,7 +118,7 @@ CSRF_TRUSTED_ORIGINS = [
     # "http://127.0.0.1:5174",
     "http://client.localhost",  # your React frontend
     "http://admin.localhost", 
-]
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

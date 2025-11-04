@@ -2,6 +2,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"     # Only for ACM certificates
+}
+
 locals {
   tags = {
     Environment = "Staging"
@@ -58,13 +63,15 @@ module "container-resources" {
   tags = local.tags
   region = var.aws_region
 
-  depends_on = [ module.datastore ]
+  depends_on = [ module.datastore, module.cognito ]
 }
 
 module "api-integrations" {
   source = "../../modules/api-integrations"
   load_balancer_arn = module.vpc.alb_listener_arn
   vpc_link_id = module.vpc.vpc_link_id
+  hosted_zone_name = local.hosted_zone_name
+custom_api_domain_name = var.env != "production" ? "api.${var.env}.${local.domain_name}" : "api.${local.domain_name}"
 
   depends_on = [ module.container-resources ]
   api_endpoints = local.api_endpoint
@@ -86,4 +93,12 @@ module "cognito" {
     # "http://admin.localhost",
     # "http://client.localhost",
   ]
+}
+
+module "web-application" {
+  source = "../../modules/content-delivery-network"
+  domain_name = local.domain_name
+  subdomains = local.subdomains
+  hosted_zone_name = local.hosted_zone_name
+  index_document   = "index.html"
 }

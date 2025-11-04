@@ -32,3 +32,21 @@ variable "vpc_link_id" {
   type        = string
   
 }
+
+variable "hosted_zone_id" {
+  type        = string
+  default     = ""
+  description = "Route53 hosted zone ID"
+}
+
+variable "hosted_zone_name" {
+  type        = string
+  default     = ""
+  description = "Route53 hosted zone name"
+}
+
+variable "custom_api_domain_name" {
+  description = "Custom domain name for the API Gateway"
+  type        = string
+  default     = ""
+}

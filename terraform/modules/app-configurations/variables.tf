@@ -26,7 +26,7 @@ variable "env" {
 variable "payment_callback_url" {
   description = "URL for payment callback"
   type        = string
-  default     = "https://api.ecommerce.com/payments/callback"
+  default     = "https://shop.okiyalabs.click"
 }
 
 variable "paystack_secret_key" {

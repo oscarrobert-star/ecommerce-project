@@ -25,3 +25,10 @@ variable "env" {
     default     = "dev"
   
 }
+
+variable "image_bucket_name" {
+  description = "S3 bucket name for storing product images"
+  type        = string
+  default     = ""
+  
+}

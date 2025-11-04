@@ -9,3 +9,4 @@ django-cors-headers
 boto3
 aws-secretsmanager-caching
 botocore
+redis

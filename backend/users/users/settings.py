@@ -7,7 +7,8 @@ For more information on this file, see
 https://docs.djangoproject.com/en/5.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/5.2/ref/settings/
+https://docs.djangoproject.com/en/5.2/ref/settings/#databas
+
 """
 
 from pathlib import Path
@@ -36,12 +37,36 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose',  # or 'simple' if you want it even shorter
+            'formatter': 'verbose',
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),  # Default INFO
+        'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+    },
+    'loggers': {
+        # 🛑 FIX: Suppress noisy external libraries 
+        'botocore': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Set to WARNING to silence detailed HTTP/Signature logs
+            'propagate': False,
+        },
+        'boto3': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Suppress high-level Boto3 debug info
+            'propagate': False,
+        },
+        'urllib3': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Suppress detailed connection/socket DEBUG logs
+            'propagate': False,
+        },
+        # You may want to add your own app's logger here if you used a specific name
+        # 'users': { 
+        #     'handlers': ['console'],
+        #     'level': 'DEBUG',
+        #     'propagate': True,
+        # }
     },
 }
 
@@ -72,7 +97,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'users.debug_middleware.DebugAuthenticationMiddleware', 
+    # 'users.debug_middleware.DebugAuthenticationMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -117,7 +142,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://admin.localhost",
     "http://api.localhost",
     "http://localhost:9000", 
-]
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 # CSRF settings
 CSRF_COOKIE_SAMESITE = 'Lax'
@@ -132,7 +157,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://admin.localhost",
     # ✅ Add the missing origin
     "http://localhost:9000",
-]
+] + [f"http://{host}" for host in os.environ.get("CORS_ADDITIONAL_HOSTS", "").split(",") if host]
 
 
 # Cookie settings

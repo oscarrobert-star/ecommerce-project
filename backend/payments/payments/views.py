@@ -28,7 +28,7 @@ def pay(request):
     payload = {
         "email": email,
         "amount": int(amount) * 100,
-        # "callback_url": os.environ.get("PAYMENT_CALLBACK") + "/payments/webhook"
+        "callback_url": f"{os.environ.get('PAYMENT_CALLBACK')}/order-confirmation?order={order_id}",
         "channels": [channel],
         "currency": "KES",
         "metadata": {
