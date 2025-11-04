@@ -72,23 +72,36 @@ jobs:
       - name: Build and Push Image
         id: push-image
         env:
-          ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
+          # Assuming ECR_BASE holds the *repository path* (e.g., 'ecommerce-staging')
+          ECR_REPO_PATH: ${{ secrets.ECR_REPOSITORY }} 
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
         run: |
-          # ECR Login
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          # Calculate the full ECR Registry URI (e.g., 123.dkr.ecr.us-east-2.amazonaws.com)
+          ECR_REGISTRY_URI="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
+          
+          # Calculate the FULL Image Tag Prefix (e.g., 123.dkr.ecr.us-east-2.amazonaws.com/ecommerce-staging/payments)
+          IMAGE_TAG_PREFIX="$ECR_REGISTRY_URI/$ECR_REPO_PATH"
 
-          IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
-          IMAGE_FULL_URI="$ECR_BASE/${{ matrix.service }}:${{ env.IMAGE_TAG }}"
+          # 1. ECR Login using the calculated URI
+          echo "Logging into ECR: $ECR_REGISTRY_URI"
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+          docker login --username AWS --password-stdin $ECR_REGISTRY_URI
+
+          # 2. Define FULL image tags
+          IMAGE_URI="$IMAGE_TAG_PREFIX/${{ matrix.service }}"
+          IMAGE_FULL_TAG="$IMAGE_URI:${{ env.IMAGE_TAG }}"
 
           echo "Building Docker image for service: ${{ matrix.service }}"
-          docker build -t $IMAGE_FULL_URI ./backend/${{ matrix.service }}
-          docker tag $IMAGE_FULL_URI $IMAGE_URI:latest
+          docker build -t $IMAGE_FULL_TAG ./backend/${{ matrix.service }}
+          docker tag $IMAGE_FULL_TAG $IMAGE_URI:latest
 
-          docker push $IMAGE_FULL_URI
+          # 3. Push using the fully qualified tags
+          echo "Pushing $IMAGE_FULL_TAG"
+          docker push $IMAGE_FULL_TAG
           docker push $IMAGE_URI:latest
           
           # Output the full image URI for the deploy job
-          echo "IMAGE_FULL_URI=$IMAGE_FULL_URI" >> $GITHUB_OUTPUT
+          echo "IMAGE_FULL_URI=$IMAGE_FULL_TAG" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy ${{ matrix.service }} to ECS
