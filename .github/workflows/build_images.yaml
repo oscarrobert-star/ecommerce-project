@@ -1,4 +1,4 @@
-name: Build and Push Changed Backend Services to ECR and Deploy
+name: Build and Push Changed Backend Services to ECR
 
 on:
   push:
@@ -10,9 +10,7 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   IMAGE_TAG: ${{ github.sha }}
-  # Define ECS Cluster/Service names once here for reuse
-  ECS_CLUSTER_NAME: ecommerce-staging-cluster # <-- Update this if your cluster name is different
-  
+
 jobs:
   detect:
     name: Detect Changed Services
@@ -30,13 +28,12 @@ jobs:
         id: set-matrix
         run: |
           echo "Detecting changed backend services..."
-          # ... (git diff and JSON matrix creation logic remains the same) ...
           SERVICES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | \
             grep '^backend/' | \
             grep -Ev '^backend/env/' | \
             awk -F/ '{print $2}' | \
             sort -u | \
-            grep -v '^$')
+            grep -v '^$')  # remove empty lines
 
           echo "Changed services:"
           echo "$SERVICES"
@@ -44,6 +41,7 @@ jobs:
           if [ -z "$SERVICES" ]; then
             JSON="[]"
           else
+            # force jq to emit compact JSON (no newlines/indent)
             JSON=$(echo "$SERVICES" | jq -R . | jq -s -c .)
           fi
 
@@ -70,121 +68,108 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Build and Push Image
-        id: push-image
         env:
-          # Assuming ECR_BASE holds the *repository path* (e.g., 'ecommerce-staging')
-          ECR_REPO_PATH: ${{ secrets.ECR_REPOSITORY }} 
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          # Calculate the full ECR Registry URI (e.g., 123.dkr.ecr.us-east-2.amazonaws.com)
-          ECR_REGISTRY_URI="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com"
-          
-          # Calculate the FULL Image Tag Prefix (e.g., 123.dkr.ecr.us-east-2.amazonaws.com/ecommerce-staging/payments)
-          IMAGE_TAG_PREFIX="$ECR_REGISTRY_URI/$ECR_REPO_PATH"
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
 
-          # 1. ECR Login using the calculated URI
-          echo "Logging into ECR: $ECR_REGISTRY_URI"
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
-          docker login --username AWS --password-stdin $ECR_REGISTRY_URI
-
-          # 2. Define FULL image tags
-          IMAGE_URI="$IMAGE_TAG_PREFIX/${{ matrix.service }}"
-          IMAGE_FULL_TAG="$IMAGE_URI:${{ env.IMAGE_TAG }}"
-
+          IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
           echo "Building Docker image for service: ${{ matrix.service }}"
-          docker build -t $IMAGE_FULL_TAG ./backend/${{ matrix.service }}
-          docker tag $IMAGE_FULL_TAG $IMAGE_URI:latest
 
-          # 3. Push using the fully qualified tags
-          echo "Pushing $IMAGE_FULL_TAG"
-          docker push $IMAGE_FULL_TAG
+          docker build -t $IMAGE_URI:${{ env.IMAGE_TAG }} ./backend/${{ matrix.service }}
+          docker tag $IMAGE_URI:${{ env.IMAGE_TAG }} $IMAGE_URI:latest
+
+          docker push $IMAGE_URI:${{ env.IMAGE_TAG }}
           docker push $IMAGE_URI:latest
-          
+
+          IMAGE_FULL_URI="$IMAGE_URI:${{ env.IMAGE_TAG }}"
+          echo "Image pushed: $IMAGE_FULL_URI"
+
           # Output the full image URI for the deploy job
-          echo "IMAGE_FULL_URI=$IMAGE_FULL_TAG" >> $GITHUB_OUTPUT
+          echo "IMAGE_FULL_URI=$IMAGE_FULL_URI" >> $GITHUB_OUTPUT
 
-  deploy:
-    name: Deploy ${{ matrix.service }} to ECS
-    needs: build
-    runs-on: ubuntu-latest
-    # Execute the deploy job only for the services that were successfully built
-    strategy:
-      matrix:
-        service: ${{ fromJson(needs.detect.outputs.matrix) }}
-    
-    # Pass outputs from build job (which ran in a matrix) to here
-    env:
-      IMAGE_URI_FROM_BUILD: ${{ fromJson(needs.build.outputs.images)[matrix.service] }}
+    deploy:
+      name: Deploy ${{ matrix.service }} to ECS
+      needs: build
+      runs-on: ubuntu-latest
+      # Execute the deploy job only for the services that were successfully built
+      strategy:
+        matrix:
+          service: ${{ fromJson(needs.detect.outputs.matrix) }}
       
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+      # Pass outputs from build job (which ran in a matrix) to here
+      env:
+        IMAGE_URI_FROM_BUILD: ${{ fromJson(needs.build.outputs.images)[matrix.service] }}
+        
+      steps:
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ env.AWS_REGION }}
 
-      - name: Check for existing ECS Task Definition (Graceful Exit)
-        id: check-td
-        # ECS task definitions are usually named after the service (e.g., product-service)
-        env:
-          TASK_DEFINITION_NAME: ${{ matrix.service }} 
-        run: |
-          echo "Checking for existing task definition: $TASK_DEFINITION_NAME"
-          
-          # Use aws ecs list-task-definitions to see if the family exists
-          TASK_FAMILY_EXISTS=$(aws ecs list-task-definitions \
-            --family-prefix $TASK_DEFINITION_NAME \
-            --status ACTIVE \
-            --region ${{ env.AWS_REGION }} \
-            --max-items 1 \
-            | jq -r '.taskDefinitionArns | length')
+        - name: Check for existing ECS Task Definition (Graceful Exit)
+          id: check-td
+          # ECS task definitions are usually named after the service (e.g., product-service)
+          env:
+            TASK_DEFINITION_NAME: ${{ matrix.service }} 
+          run: |
+            echo "Checking for existing task definition: $TASK_DEFINITION_NAME"
+            
+            # Use aws ecs list-task-definitions to see if the family exists
+            TASK_FAMILY_EXISTS=$(aws ecs list-task-definitions \
+              --family-prefix $TASK_DEFINITION_NAME \
+              --status ACTIVE \
+              --region ${{ env.AWS_REGION }} \
+              --max-items 1 \
+              | jq -r '.taskDefinitionArns | length')
 
-          if [ "$TASK_FAMILY_EXISTS" -eq 0 ]; then
-            echo "::notice::ECS resources (Task Definition Family: $TASK_DEFINITION_NAME) not found. Exiting gracefully."
-            echo "ECS_RESOURCES_EXIST=false" >> $GITHUB_OUTPUT
-            # Exit this specific step gracefully (without failing the job)
-          else
-            echo "ECS Task Definition Family found."
-            echo "ECS_RESOURCES_EXIST=true" >> $GITHUB_OUTPUT
-          fi
-        # Add a conditional step execution
-        if: always()
+            if [ "$TASK_FAMILY_EXISTS" -eq 0 ]; then
+              echo "::notice::ECS resources (Task Definition Family: $TASK_DEFINITION_NAME) not found. Exiting gracefully."
+              echo "ECS_RESOURCES_EXIST=false" >> $GITHUB_OUTPUT
+              # Exit this specific step gracefully (without failing the job)
+            else
+              echo "ECS Task Definition Family found."
+              echo "ECS_RESOURCES_EXIST=true" >> $GITHUB_OUTPUT
+            fi
+          # Add a conditional step execution
+          if: always()
 
-      - name: Deploy if ECS Resources Exist
-        if: steps.check-td.outputs.ECS_RESOURCES_EXIST == 'true'
-        run: |
-          # --- 1. Get current task definition to render new one ---
-          TASK_DEFINITION_NAME=${{ matrix.service }}
-          
-          # Get the latest active task definition ARN
-          TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
+        - name: Deploy if ECS Resources Exist
+          if: steps.check-td.outputs.ECS_RESOURCES_EXIST == 'true'
+          run: |
+            # --- 1. Get current task definition to render new one ---
+            TASK_DEFINITION_NAME=${{ matrix.service }}
+            
+            # Get the latest active task definition ARN
+            TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
 
-          # --- 2. Render new task definition JSON ---
-          # We update the image tag for the container named after the service (e.g., 'product-service')
-          aws ecs describe-task-definition \
-            --task-definition $TASK_DEF_ARN \
-            --region ${{ env.AWS_REGION }} \
-            | jq --arg IMG_URI "${{ needs.build.outputs[matrix.service].IMAGE_FULL_URI }}" \
-                 '.taskDefinition | .containerDefinitions |= map(if .name == "' + TASK_DEFINITION_NAME + '" then .image = $IMG_URI else . end) | 
-                 del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes)' \
-            > rendered-task-definition.json
+            # --- 2. Render new task definition JSON ---
+            # We update the image tag for the container named after the service (e.g., 'product-service')
+            aws ecs describe-task-definition \
+              --task-definition $TASK_DEF_ARN \
+              --region ${{ env.AWS_REGION }} \
+              | jq --arg IMG_URI "${{ needs.build.outputs[matrix.service].IMAGE_FULL_URI }}" \
+                  '.taskDefinition | .containerDefinitions |= map(if .name == "' + TASK_DEFINITION_NAME + '" then .image = $IMG_URI else . end) | 
+                  del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes)' \
+              > rendered-task-definition.json
 
-          # --- 3. Register New Task Definition ---
-          NEW_TD_ARN=$(aws ecs register-task-definition \
-            --region ${{ env.AWS_REGION }} \
-            --cli-input-json file://rendered-task-definition.json \
-            | jq -r '.taskDefinition.taskDefinitionArn')
-          
-          echo "Registered new task definition: $NEW_TD_ARN"
+            # --- 3. Register New Task Definition ---
+            NEW_TD_ARN=$(aws ecs register-task-definition \
+              --region ${{ env.AWS_REGION }} \
+              --cli-input-json file://rendered-task-definition.json \
+              | jq -r '.taskDefinition.taskDefinitionArn')
+            
+            echo "Registered new task definition: $NEW_TD_ARN"
 
-          # --- 4. Force ECS Service Deployment ---
-          echo "Updating ECS service: ${{ matrix.service }}-service"
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER_NAME }} \
-            --service ${{ matrix.service }}-service \
-            --task-definition $NEW_TD_ARN \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+            # --- 4. Force ECS Service Deployment ---
+            echo "Updating ECS service: ${{ matrix.service }}-service"
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_NAME }} \
+              --service ${{ matrix.service }}-service \
+              --task-definition $NEW_TD_ARN \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }}
 
-          echo "Deployment initiated successfully for ${{ matrix.service }}."
+            echo "Deployment initiated successfully for ${{ matrix.service }}."    
