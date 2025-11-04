@@ -75,7 +75,7 @@ jobs:
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
         run: |
           # ECR Login
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
           IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
           IMAGE_FULL_URI="$ECR_BASE/${{ matrix.service }}:${{ env.IMAGE_TAG }}"
