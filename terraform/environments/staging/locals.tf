@@ -30,10 +30,10 @@ locals {
     # { name = "DB_USERNAME", valueFrom = module.app-configurations.db_username_param_arn }
   ]
 
-  payments_secrets = concat( local.cors_origins, [
+  payments_secrets =  [
     { name = "PAYSTACK_SECRET_KEY", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/paystack/secret_key" },
     { name = "PAYMENT_CALLBACK", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/payment_callback_url" }
-  ])
+  ]
 
   checkout_env = concat(local.cors_origins, [
     { name = "ORDERS_SERVICE_URL", value = "http://${module.vpc.alb_dns_name}" },
