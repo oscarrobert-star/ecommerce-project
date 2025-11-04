@@ -35,6 +35,10 @@ locals {
     { name = "PAYMENT_CALLBACK", valueFrom = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.env}/payment_callback_url" }
   ]
 
+  payments_env = concat(local.db_env, local.cors_origins, [
+    { name = "ORDERS_SERVICE_URL", value = "http://${module.vpc.alb_dns_name}" }
+  ])
+
   checkout_env = concat(local.cors_origins, [
     { name = "ORDERS_SERVICE_URL", value = "http://${module.vpc.alb_dns_name}" },
     { name = "PAYMENT_SERVICE_URL", value = "http://${module.vpc.alb_dns_name}" }
@@ -62,7 +66,7 @@ locals {
     orders   = local.order_env,
     products = local.products_env,
     users    = local.users_env,
-    payments = local.db_env,
+    payments = local.payments_env,
     checkout = local.checkout_env,
     cart     = local.cart_env
   }

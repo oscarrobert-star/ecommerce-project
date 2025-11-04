@@ -50,3 +50,8 @@ variable "custom_api_domain_name" {
   type        = string
   default     = ""
 }
+
+variable "cors_allowed_origins" {
+  type        = list(string)
+  description = "Allowed CORS origins"
+}

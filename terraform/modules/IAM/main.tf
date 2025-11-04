@@ -50,6 +50,8 @@
 #   })
 # }
 
+data "aws_caller_identity" "current" {}
+
 # This module create ECS task role and policies for each environment. It Helps isolate environment-specific permissions.
 # 2. ECS Task Role
 resource "aws_iam_role" "ecs_task_role" {
@@ -84,22 +86,48 @@ resource "aws_iam_policy" "ecs_task_policy" {
         "s3:PutObject"
       ]
       Resource = "*"
-    },
-    {
-      Effect = "Allow"
-      Action = [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ]
-      Resource = "*"
-    },
-    {
-      Effect = "Allow"
-      Action = [
-        "ssm:GetParameters"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
-      Resource = "*"  
-    }
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameters"
+        ]
+        Resource = "*"
+      },
+      {
+        "Sid" : "CognitoUserManagement",
+        "Effect" : "Allow",
+        "Action" : [
+          /* --- Authentication & Status Retrieval --- */
+          "cognito-idp:AdminInitiateAuth", /* Used by login_user */
+          "cognito-idp:RespondToAuthChallenge", /* Used by login_user for NEW_PASSWORD_REQUIRED */
+          "cognito-idp:GlobalSignOut", /* Used by logout_user */
+          "cognito-idp:GetUser", /* Used by get_user_groups */
+
+          /* --- Self-Service Flows (Client ID Required) --- */
+          "cognito-idp:SignUp", /* Used by signup_user */
+          "cognito-idp:ConfirmSignUp", /* Used by confirm_signup */
+          "cognito-idp:ForgotPassword", /* Used by forgot_password */
+          "cognito-idp:ConfirmForgotPassword", /* Used by confirm_forgot_password */
+          "cognito-idp:ResendConfirmationCode", /* Used by resend_confirmation_code */
+
+          /* --- Admin/Staff Actions (User Pool ID Required) --- */
+          "cognito-idp:AdminCreateUser", /* Used by admin_create_user */
+          "cognito-idp:AdminAddUserToGroup", /* Used by add_user_to_group */
+          "cognito-idp:AdminDeleteUser" /* Used by delete_user */
+        ],
+        "Resource" : [
+          "arn:aws:cognito-idp:${var.aws_region}:${data.aws_caller_identity.current.account_id}:userpool/*"
+        ]
+      }
     ]
   })
 

@@ -209,6 +209,7 @@ services:
       - DB_PORT=5432    
       - PAYSTACK_SECRET_KEY=sk_test_3d3a69512e465c85fb29b3bedc14ab77d6b943ae
       - PAYMENT_CALLBACK=https://f7b6ff541e29.ngrok-free.app
+      - ORDERS_SERVICE_URL=http://order-service:8000
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.payments.rule=Host(`api.localhost`) && PathPrefix(`/payments`)"
