@@ -142,6 +142,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         logger.info("API CALL: GET /products (List view)")
         if request.META.get('HTTP_X_FORWARDED_PROTO', '').lower() == 'https':
             request.META['wsgi.url_scheme'] = 'https'
+            
         
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)

@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
-      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
 
     steps:
       - name: Checkout Code
@@ -43,20 +42,17 @@ jobs:
 
           if [ -z "$SERVICES" ]; then
             JSON="[]"
-            HAS_CHANGES="false"
           else
             JSON=$(echo "$SERVICES" | jq -R . | jq -s -c .)
-            HAS_CHANGES="true"
           fi
 
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
-          echo "has_changes=$HAS_CHANGES" >> $GITHUB_OUTPUT
 
   build:
     name: Build & Push ${{ matrix.service }}
     needs: detect
     runs-on: ubuntu-latest
-    if: needs.detect.outputs.has_changes == 'true'
+    if: needs.detect.outputs.matrix != '[]'
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect.outputs.matrix) }}
@@ -75,10 +71,12 @@ jobs:
       - name: Build and Push Image
         id: push-image
         env:
+          # ECR_REPOSITORY likely holds the repository path (e.g., 'ecommerce-staging')
+          # ECR_REPO_PATH: ${{ secrets.ECR_REPOSITORY }} 
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
 
           IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
           echo "Building Docker image for service: ${{ matrix.service }}"
