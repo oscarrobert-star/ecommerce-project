@@ -140,6 +140,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """Overrides list to trigger Redis cache warming on pagination/filter."""
         logger.info("API CALL: GET /products (List view)")
+        if request.META.get('HTTP_X_FORWARDED_PROTO', '').lower() == 'https':
+            request.META['wsgi.url_scheme'] = 'https'
         
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
@@ -164,7 +166,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         logger.warning(f"Invalid data for product creation: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # 🛑 CRITICAL FIX: Ensure Redis is deleted upon creation
+
     def perform_create(self, serializer):
         instance = serializer.save()
         stock_key = f"stock:available:{instance.id}"

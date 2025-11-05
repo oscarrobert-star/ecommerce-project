@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
 
     steps:
       - name: Checkout Code
@@ -42,17 +43,20 @@ jobs:
 
           if [ -z "$SERVICES" ]; then
             JSON="[]"
+            HAS_CHANGES="false"
           else
             JSON=$(echo "$SERVICES" | jq -R . | jq -s -c .)
+            HAS_CHANGES="true"
           fi
 
           echo "matrix=$JSON" >> $GITHUB_OUTPUT
+          echo "has_changes=$HAS_CHANGES" >> $GITHUB_OUTPUT
 
   build:
     name: Build & Push ${{ matrix.service }}
     needs: detect
     runs-on: ubuntu-latest
-    if: needs.detect.outputs.matrix != '[]'
+    if: needs.detect.outputs.has_changes == 'true'
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect.outputs.matrix) }}
@@ -71,12 +75,10 @@ jobs:
       - name: Build and Push Image
         id: push-image
         env:
-          # ECR_REPOSITORY likely holds the repository path (e.g., 'ecommerce-staging')
-          # ECR_REPO_PATH: ${{ secrets.ECR_REPOSITORY }} 
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
           IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
           echo "Building Docker image for service: ${{ matrix.service }}"
@@ -95,14 +97,14 @@ jobs:
 
   deploy:
     name: Deploy ${{ matrix.service }} to ECS
-    needs: build
+    needs: 
+      - detect
+      - build
     runs-on: ubuntu-latest
-    if: needs.detect.outputs.matrix != '[]'
+    if: needs.detect.outputs.has_changes == 'true'
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect.outputs.matrix) }}
-    
-    # Use the output from the build job (via needs.build.outputs)
     
     steps:
       - name: Configure AWS credentials
@@ -133,7 +135,12 @@ jobs:
             echo "ECS Task Definition Family found."
             echo "ECS_RESOURCES_EXIST=true" >> $GITHUB_OUTPUT
           fi
-        if: always()
+
+      - name: Get Image URI from Build Job
+        id: get-image
+        run: |
+          # Access the output from the specific build job for this service
+          echo "IMAGE_FULL_URI=${{ needs.build.outputs['IMAGE_FULL_URI'] }}" >> $GITHUB_OUTPUT
 
       - name: Deploy if ECS Resources Exist
         if: steps.check-td.outputs.ECS_RESOURCES_EXIST == 'true'
@@ -141,7 +148,9 @@ jobs:
           TASK_DEFINITION_NAME=${{ matrix.service }}
           
           # The image URI is passed from the build job's output
-          IMAGE_URI="${{ needs.build.outputs[matrix.service].IMAGE_FULL_URI }}"
+          IMAGE_URI="${{ steps.get-image.outputs.IMAGE_FULL_URI }}"
+          
+          echo "Using image: $IMAGE_URI"
           
           # 1. Get the latest active task definition ARN
           TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
@@ -151,7 +160,7 @@ jobs:
             --task-definition $TASK_DEF_ARN \
             --region ${{ env.AWS_REGION }} \
             | jq --arg IMG_URI "$IMAGE_URI" \
-                 '.taskDefinition | .containerDefinitions |= map(if .name == "' + TASK_DEFINITION_NAME + '" then .image = $IMG_URI else . end) | 
+                 '.taskDefinition | .containerDefinitions |= map(if .name == "'$TASK_DEFINITION_NAME'" then .image = $IMG_URI else . end) | 
                  del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes)' \
             > rendered-task-definition.json
 
