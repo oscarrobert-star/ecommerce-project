@@ -95,7 +95,7 @@ def cache_stock_for_products(product_queryset):
 
 # --- Health Check ---
 def health_check(request):
-    logging.info("Health check initiated")
+    # logging.info("Health check initiated")
     databases = ["default", "replica"]
     status = {}
 
@@ -140,9 +140,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """Overrides list to trigger Redis cache warming on pagination/filter."""
         logger.info("API CALL: GET /products (List view)")
-        if request.META.get('HTTP_X_FORWARDED_PROTO', '').lower() == 'https':
-            request.META['wsgi.url_scheme'] = 'https'
-            
         
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)

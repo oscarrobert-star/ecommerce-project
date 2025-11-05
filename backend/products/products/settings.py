@@ -175,3 +175,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REDIS_HOST = os.environ.get('REDIS_HOST')
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

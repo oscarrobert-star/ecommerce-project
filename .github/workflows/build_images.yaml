@@ -99,7 +99,7 @@ jobs:
       - detect
       - build
     runs-on: ubuntu-latest
-    if: needs.detect.outputs.has_changes == 'true'
+    if: needs.detect.outputs.matrix != '[]'
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect.outputs.matrix) }}
