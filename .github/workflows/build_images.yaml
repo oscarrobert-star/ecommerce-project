@@ -10,8 +10,9 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   IMAGE_TAG: ${{ github.sha }}
-  ECS_CLUSTER_NAME: ecommerce-staging-cluster
-
+  # Define ECS Cluster/Service names once here for reuse
+  ECS_CLUSTER_NAME: ecommerce-staging-cluster 
+  
 jobs:
   detect:
     name: Detect Changed Services
@@ -50,12 +51,11 @@ jobs:
   build:
     name: Build & Push ${{ matrix.service }}
     needs: detect
-    if: needs.detect.outputs.matrix != '[]'
     runs-on: ubuntu-latest
-
+    if: needs.detect.outputs.matrix != '[]'
     strategy:
       matrix:
-        service: ${{ fromJson(needs.detect.outputs.matrix || '[]') }}
+        service: ${{ fromJson(needs.detect.outputs.matrix) }}
 
     steps:
       - name: Checkout Code
@@ -68,14 +68,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION \
-            | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-
       - name: Build and Push Image
+        id: push-image
+        env:
+          # ECR_REPOSITORY likely holds the repository path (e.g., 'ecommerce-staging')
+          # ECR_REPO_PATH: ${{ secrets.ECR_REPOSITORY }} 
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          ECR_BASE: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          IMAGE_URI="${{ secrets.ECR_REPOSITORY }}/${{ matrix.service }}"
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 071046007207.dkr.ecr.us-east-2.amazonaws.com
+
+          IMAGE_URI="$ECR_BASE/${{ matrix.service }}"
+          echo "Building Docker image for service: ${{ matrix.service }}"
 
           docker build -t $IMAGE_URI:${{ env.IMAGE_TAG }} ./backend/${{ matrix.service }}
           docker tag $IMAGE_URI:${{ env.IMAGE_TAG }} $IMAGE_URI:latest
@@ -83,24 +87,23 @@ jobs:
           docker push $IMAGE_URI:${{ env.IMAGE_TAG }}
           docker push $IMAGE_URI:latest
 
-          echo "{\"service\":\"${{ matrix.service }}\",\"image\":\"$IMAGE_URI:${{ env.IMAGE_TAG }}\"}" >> images.json
+          IMAGE_FULL_URI="$IMAGE_URI:${{ env.IMAGE_TAG }}"
+          echo "Image pushed: $IMAGE_FULL_URI"
 
-      - name: Upload image metadata
-        uses: actions/upload-artifact@v4
-        with:
-          name: images
-          path: images.json
+          # Output the full image URI for the deploy job
+          echo "IMAGE_FULL_URI=$IMAGE_FULL_URI" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy ${{ matrix.service }} to ECS
     needs: build
-    if: needs.detect.outputs.matrix != '[]'
     runs-on: ubuntu-latest
-
+    if: needs.detect.outputs.matrix != '[]'
     strategy:
       matrix:
-        service: ${{ fromJson(needs.detect.outputs.matrix || '[]') }}
-
+        service: ${{ fromJson(needs.detect.outputs.matrix) }}
+    
+    # Use the output from the build job (via needs.build.outputs)
+    
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -109,52 +112,64 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download image metadata
-        uses: actions/download-artifact@v4
-        with:
-          name: images
-
-      - name: Read image for this service
-        id: find-image
-        run: |
-          IMAGE=$(jq -r "select(.service == \"${{ matrix.service }}\") | .image" images.json)
-          echo "Got image: $IMAGE"
-          echo "IMAGE_URI=$IMAGE" >> $GITHUB_OUTPUT
-
-      - name: Check if ECS Task Definition Exists
+      - name: Check for existing ECS Task Definition (Graceful Exit)
         id: check-td
+        env:
+          TASK_DEFINITION_NAME: ${{ matrix.service }} 
         run: |
-          EXISTS=$(aws ecs list-task-definitions \
-            --family-prefix ${{ matrix.service }} \
+          echo "Checking for existing task definition: $TASK_DEFINITION_NAME"
+          
+          TASK_FAMILY_EXISTS=$(aws ecs list-task-definitions \
+            --family-prefix $TASK_DEFINITION_NAME \
             --status ACTIVE \
-            --max-items 1 | jq '.taskDefinitionArns | length')
+            --region ${{ env.AWS_REGION }} \
+            --max-items 1 \
+            | jq -r '.taskDefinitionArns | length')
 
-          if [ "$EXISTS" -eq 0 ]; then
+          if [ "$TASK_FAMILY_EXISTS" -eq 0 ]; then
+            echo "::notice::ECS resources (Task Definition Family: $TASK_DEFINITION_NAME) not found. Exiting gracefully."
             echo "ECS_RESOURCES_EXIST=false" >> $GITHUB_OUTPUT
           else
+            echo "ECS Task Definition Family found."
             echo "ECS_RESOURCES_EXIST=true" >> $GITHUB_OUTPUT
           fi
+        if: always()
 
-      - name: Deploy to ECS
+      - name: Deploy if ECS Resources Exist
         if: steps.check-td.outputs.ECS_RESOURCES_EXIST == 'true'
         run: |
-          TD=${{ matrix.service }}
-          IMAGE_URI="${{ steps.find-image.outputs.IMAGE_URI }}"
+          TASK_DEFINITION_NAME=${{ matrix.service }}
+          
+          # The image URI is passed from the build job's output
+          IMAGE_URI="${{ needs.build.outputs[matrix.service].IMAGE_FULL_URI }}"
+          
+          # 1. Get the latest active task definition ARN
+          TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
 
-          echo "Deploying $TD with $IMAGE_URI"
+          # 2. Render new task definition JSON with the new image URI
+          aws ecs describe-task-definition \
+            --task-definition $TASK_DEF_ARN \
+            --region ${{ env.AWS_REGION }} \
+            | jq --arg IMG_URI "$IMAGE_URI" \
+                 '.taskDefinition | .containerDefinitions |= map(if .name == "' + TASK_DEFINITION_NAME + '" then .image = $IMG_URI else . end) | 
+                 del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes)' \
+            > rendered-task-definition.json
 
-          aws ecs describe-task-definition --task-definition $TD \
-            | jq --arg IMG "$IMAGE_URI" \
-              '.taskDefinition |
-              .containerDefinitions |= map(if .name == "'$TD'" then .image = $IMG else . end) |
-              del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
-            > new-td.json
+          # 3. Register New Task Definition
+          NEW_TD_ARN=$(aws ecs register-task-definition \
+            --region ${{ env.AWS_REGION }} \
+            --cli-input-json file://rendered-task-definition.json \
+            | jq -r '.taskDefinition.taskDefinitionArn')
+          
+          echo "Registered new task definition: $NEW_TD_ARN"
 
-          NEW_TD=$(aws ecs register-task-definition --cli-input-json file://new-td.json --query 'taskDefinition.taskDefinitionArn' --output text)
-
+          # 4. Force ECS Service Deployment
+          echo "Updating ECS service: ${{ matrix.service }}-service"
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER_NAME }} \
-            --service ${TD}-service \
-            --task-definition $NEW_TD \
-            --force-new-deployment
-          echo "Deployed $TD to ECS with new task definition $NEW_TD"
+            --service ${{ matrix.service }}-service \
+            --task-definition $NEW_TD_ARN \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+          echo "Deployment initiated successfully for ${{ matrix.service }}."
