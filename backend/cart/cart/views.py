@@ -19,6 +19,10 @@ redis_client = redis.StrictRedis(
 
 CART_TTL_SECONDS = getattr(settings, "CART_TTL_SECONDS", 900)  # Default to 15 minutes
 
+# ====================================================================
+# VIEWS: CART OPERATIONS
+# ====================================================================
+
 @csrf_exempt
 def add_to_cart(request):
     if request.method != 'POST':
@@ -33,6 +37,7 @@ def add_to_cart(request):
         
         cart_key = f"cart:{cart_id}"
         stock_key = f"stock:available:{product_id}"
+        reservation_key = f"reservation:{cart_id}" # Persistent key
 
         # Get existing quantity and determine NET change required
         existing_item = redis_client.hget(cart_key, product_id)
@@ -49,7 +54,6 @@ def add_to_cart(request):
         
         # 3. ATOMIC Stock Reservation Check (for net increase)
         if net_quantity_to_reserve > 0:
-            # DECRBY returns the new value. If less than zero, we failed.
             new_stock_level = redis_client.decrby(stock_key, net_quantity_to_reserve)
 
             if new_stock_level < 0:
@@ -66,8 +70,13 @@ def add_to_cart(request):
             "price": str(data.get('price')),
         }
 
+        # A. Update the temporary cart key (for UI/session, with TTL)
         redis_client.hset(cart_key, product_id, json.dumps(item_data))
-        redis_client.expire(cart_key, CART_TTL_SECONDS) # Set the cart TTL
+        redis_client.expire(cart_key, CART_TTL_SECONDS) 
+        
+        # B. Update the persistent reservation key (for stock rollback, NO TTL)
+        reservation_data = {"quantity": requested_quantity}
+        redis_client.hset(reservation_key, product_id, json.dumps(reservation_data))
 
         return JsonResponse({'message': 'Item added', 'cart_id': cart_id})
 
@@ -106,9 +115,10 @@ def remove_from_cart(request):
 
         cart_key = f"cart:{cart_id}"
         stock_key = f"stock:available:{product_id}"
+        reservation_key = f"reservation:{cart_id}"
         
         # 1. Get the reserved quantity
-        reserved_item_json = redis_client.hget(cart_key, product_id)
+        reserved_item_json = redis_client.hget(cart_key, product_id) 
         if not reserved_item_json:
             return JsonResponse({'message': 'Item not in cart to remove'}, status=404)
             
@@ -118,8 +128,14 @@ def remove_from_cart(request):
         if reserved_quantity > 0:
             redis_client.incrby(stock_key, reserved_quantity)
             
-        # 3. Remove item from cart
+        # 3. Remove item from both cart keys
         redis_client.hdel(cart_key, product_id)
+        redis_client.hdel(reservation_key, product_id) 
+        
+        # If reservation key is now empty, delete it entirely
+        if not redis_client.hgetall(reservation_key):
+            redis_client.delete(reservation_key)
+            
         return JsonResponse({'message': 'Item removed', 'cart_id': cart_id})
     except Exception as e:
         logging.exception("Failed to remove item from cart")
@@ -134,18 +150,22 @@ def clear_cart(request):
     try:
         cart_id = get_cart_id(request)
         cart_key = f"cart:{cart_id}"
+        reservation_key = f"reservation:{cart_id}" 
         
-        # 1. Iterate through items to release stock before clearing cart
-        items_to_clear = redis_client.hgetall(cart_key)
+        # 1. Iterate through items to release stock
+        items_to_clear = redis_client.hgetall(cart_key) 
+        
         for product_id_str, item_json in items_to_clear.items():
             reserved_quantity = json.loads(item_json).get('quantity', 0)
             stock_key = f"stock:available:{product_id_str}"
             if reserved_quantity > 0:
                  redis_client.incrby(stock_key, reserved_quantity) # Atomically release stock
         
-        # 2. Clear the cart
+        # 2. Clear both cart and reservation keys
         redis_client.delete(cart_key)
-        logging.info(f"Cart {cart_id} cleared and stock released.")
+        redis_client.delete(reservation_key) 
+        
+        logging.info(f"Cart {cart_id} cleared, stock released, and persistent reservation removed.")
         return JsonResponse({'message': 'Cart cleared'}, status=200)
     except Exception as e:
         logging.exception("Failed to clear cart")
@@ -161,10 +181,11 @@ def edit_item_quantity(request):
         cart_id = get_cart_id(request)
         data = json.loads(request.body)
         product_id = str(data.get('product_id'))
-        new_quantity = int(data.get('quantity', 1)) # Note: Renamed 'quantity' to 'new_quantity' internally for clarity
+        new_quantity = int(data.get('quantity', 1))
 
         cart_key = f"cart:{cart_id}"
         stock_key = f"stock:available:{product_id}"
+        reservation_key = f"reservation:{cart_id}"
         item_json = redis_client.hget(cart_key, product_id)
 
         if not item_json:
@@ -175,32 +196,31 @@ def edit_item_quantity(request):
         
         # 1. Handle Quantity Reduction (Release Stock)
         if new_quantity <= 0:
-            # If new quantity is 0 or less, treat as removal and release all stock.
             if old_quantity > 0:
                 redis_client.incrby(stock_key, old_quantity)
             redis_client.hdel(cart_key, product_id)
+            redis_client.hdel(reservation_key, product_id)
+            
+            if not redis_client.hgetall(reservation_key):
+                redis_client.delete(reservation_key)
+                
             logger.info(f"Item {product_id} removed from cart {cart_id} due to quantity <= 0")
             return JsonResponse({'message': 'Item removed due to non-positive quantity', 'cart_id': cart_id})
 
-        # 2. Calculate NET Change
-        # Positive result means we need to RELEASE stock (old > new)
-        # Negative result means we need to RESERVE stock (old < new)
+        # 2. Calculate NET Change and manage stock atomically
         net_stock_change = old_quantity - new_quantity
 
         if net_stock_change > 0:
-            # Quantity reduced (e.g., 5 -> 3, net_stock_change = 2). RELEASE stock.
+            # Quantity reduced (RELEASE stock)
             redis_client.incrby(stock_key, net_stock_change)
             logger.info(f"Released {net_stock_change} stock for product {product_id}")
             
         elif net_stock_change < 0:
-            # Quantity increased (e.g., 3 -> 5, net_stock_change = -2). RESERVE stock.
+            # Quantity increased (RESERVE stock)
             quantity_to_reserve = abs(net_stock_change)
-            
-            # ATOMIC CHECK: Decrement the stock counter
             new_stock_level = redis_client.decrby(stock_key, quantity_to_reserve)
 
             if new_stock_level < 0:
-                # RESERVATION FAILED: Undo the decrement and block update.
                 redis_client.incrby(stock_key, quantity_to_reserve)
                 logger.warning(f"Stockout: Product {product_id} failed to reserve {quantity_to_reserve}.")
                 return JsonResponse({'error': 'Insufficient stock available.'}, status=409)
@@ -208,9 +228,12 @@ def edit_item_quantity(request):
             logger.info(f"Reserved {quantity_to_reserve} stock for product {product_id}")
 
 
-        # 3. Stock Operation Succeeded: Update the Cart Hash
+        # 3. Stock Operation Succeeded: Update BOTH Cart Hashes
         current_item['quantity'] = new_quantity
         redis_client.hset(cart_key, product_id, json.dumps(current_item))
+        
+        reservation_data = {"quantity": new_quantity} # Update persistent reservation
+        redis_client.hset(reservation_key, product_id, json.dumps(reservation_data))
         
         # Extend cart TTL
         redis_client.expire(cart_key, CART_TTL_SECONDS) 
@@ -222,30 +245,82 @@ def edit_item_quantity(request):
         logging.exception("Failed to update item quantity")
         return JsonResponse({'error': str(e)}, status=500)
 
+
+# ====================================================================
+# VIEWS: CRON/CLEANUP (To be called by External Scheduler)
+# ====================================================================
+
+@csrf_exempt
+def cleanup_expired_reservations(request):
+    """
+    Endpoint called by a scheduled job (cron) to release stock from expired carts.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST allowed'}, status=405)
+
+    # 1. Find all persistent reservation keys
+    reservation_keys = redis_client.keys("reservation:*") 
+    
+    cleanup_count = 0
+    stock_released_count = 0
+
+    for res_key in reservation_keys:
+        cart_id = res_key.split(':', 1)[1] 
+        cart_key = f"cart:{cart_id}"
+        
+        # 2. Check for the existence of the corresponding display/session cart key
+        if not redis_client.exists(cart_key):
+            logger.info(f"Dangling reservation found for Cart ID: {cart_id}. Releasing stock.")
+            
+            # 3. Retrieve reserved items from the persistent reservation key
+            reserved_items = redis_client.hgetall(res_key)
+            
+            for product_id_str, item_json in reserved_items.items():
+                try:
+                    reserved_quantity = json.loads(item_json).get('quantity', 0) 
+                    stock_key = f"stock:available:{product_id_str}"
+                    
+                    if reserved_quantity > 0:
+                         redis_client.incrby(stock_key, reserved_quantity) 
+                         stock_released_count += reserved_quantity
+                         
+                except Exception as e:
+                    logger.error(f"Error releasing stock for {product_id_str} in expired cart {cart_id}: {e}")
+                    continue
+            
+            # 4. Delete the persistent reservation key after cleanup
+            redis_client.delete(res_key)
+            cleanup_count += 1
+            logger.info(f"Cleanup successful for expired cart: {cart_id}")
+
+    logger.info(f"Cleanup Run Complete: {cleanup_count} carts cleaned. {stock_released_count} total units released.")
+    return JsonResponse({
+        "status": "Cleanup complete", 
+        "carts_cleaned": cleanup_count,
+        "units_released": stock_released_count
+    }, status=200)
+
+# ====================================================================
+# VIEWS: HEALTH/UTILITY
+# ====================================================================
+
 def health_check(request):
     try:
-        # Try pinging Redis
         logging.info("Checking Redis health")
         if not redis_client.ping():
             logging.error("Redis is not reachable")
             raise Exception("Redis is not reachable")
-        # redis_client.ping()
         return JsonResponse({'status': 'ok'})
     except Exception as e:
         logging.exception(f"Health check failed with error {e}")
         return JsonResponse({'status': 'error', 'details': str(e)}, status=500)
 
 def get_cart_ttl(request):
-    """
-    Returns the remaining time-to-live for the current cart.
-    """
     try:
         cart_id = get_cart_id(request)
         redis_key = f"cart:{cart_id}"
         ttl = redis_client.ttl(redis_key)
         
-        # Redis returns -1 if the key exists but has no associated expire.
-        # It returns -2 if the key does not exist.
         if ttl < 0:
             ttl = 0
             
@@ -253,4 +328,4 @@ def get_cart_ttl(request):
         return JsonResponse({'ttl': ttl})
     except Exception as e:
         logging.exception("Failed to get cart TTL")
-        return JsonResponse({'error': str(e)}, status=500)        
+        return JsonResponse({'error': str(e)}, status=500)

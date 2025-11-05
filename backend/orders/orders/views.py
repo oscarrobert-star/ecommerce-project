@@ -86,6 +86,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         # NOTE: A robust system would also call the Cart Service here to DELETE the cart
         # and prevent the 30-minute cart TTL from releasing the stock reservation!
         
+        
         return Response({"id": order_id}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["patch"], url_path="payment_status")

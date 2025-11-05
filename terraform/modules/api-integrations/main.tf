@@ -8,7 +8,7 @@ resource "aws_apigatewayv2_api" "http_api" {
   cors_configuration {
     allow_origins = var.cors_allowed_origins
 
-    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"]
     allow_headers = ["Content-Type", "Authorization", "x-cart-id"]
     expose_headers = ["Content-Length", "Content-Type"]
     max_age = 3600

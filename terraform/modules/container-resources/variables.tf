@@ -79,3 +79,27 @@ variable "region" {
   type        = string
   
 }
+
+variable "min_capacity" {
+  description = "Minimum number of containers for each service"
+  type        = number
+  default     = 1
+}
+
+variable "max_capacity" {
+  description = "Maximum number of containers for each service"
+  type        = number
+  default     = 5
+}
+
+variable "cpu_scaling_target" {
+  description = "CPU utilization percentage for scaling"
+  type        = number
+  default     = 80
+}
+
+variable "scale_cooldown" {
+  description = "Cooldown period in seconds for scaling actions"
+  type        = number
+  default     = 300
+}

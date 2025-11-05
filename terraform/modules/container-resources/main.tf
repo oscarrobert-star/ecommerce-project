@@ -1,4 +1,4 @@
-# In this modul we create the container resources - AWS ECR, AWS ECS Cluster, AWS ECS Task Definition, AWS ECS Service
+# In this module we create the container resources - AWS ECR, AWS ECS Cluster, AWS ECS Task Definition, AWS ECS Service
 
 # resource "aws_ecr_repository" "this" {
 #   for_each = toset(var.repository_names)
@@ -33,8 +33,8 @@ resource "aws_ecs_task_definition" "this" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
-  execution_role_arn      = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecs-task-execution-role"
-  task_role_arn           = var.task_role_arn
+  execution_role_arn       = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecs-task-execution-role"
+  task_role_arn            = var.task_role_arn
 
   container_definitions = jsonencode([
     {
@@ -50,14 +50,14 @@ resource "aws_ecs_task_definition" "this" {
         }
       ]
       environment = lookup(var.task_environment, each.value, [])
-      secrets = lookup(var.secrets, each.value, []) 
+      secrets     = lookup(var.secrets, each.value, [])
       logConfiguration = {
         logDriver = "awslogs"
         options = {
           "awslogs-group"         = "/ecs/${each.value}"
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = each.value
-          "awslogs-create-group" = "true"
+          "awslogs-create-group"  = "true"
         }
       }
     }
@@ -67,6 +67,7 @@ resource "aws_ecs_task_definition" "this" {
     Name = each.value
   })
 }
+
 resource "aws_ecs_service" "this" {
   for_each = toset(var.service_names)
 
@@ -88,9 +89,44 @@ resource "aws_ecs_service" "this" {
     container_port   = 8000
   }
 
+  # Enable ECS Service Auto Scaling
+  deployment_controller {
+    type = "ECS"
+  }
+
   tags = merge(var.tags, {
     Name = each.value
   })
+}
+
+resource "aws_appautoscaling_target" "this" {
+  for_each = toset(var.service_names)
+
+  max_capacity       = 5
+  min_capacity       = 1
+  resource_id        = "service/${aws_ecs_cluster.this.name}/${aws_ecs_service.this[each.value].name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "cpu_scaling" {
+  for_each = toset(var.service_names)
+
+  name               = "${each.value}-cpu-scaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.this[each.value].resource_id
+  scalable_dimension = aws_appautoscaling_target.this[each.value].scalable_dimension
+  service_namespace  = aws_appautoscaling_target.this[each.value].service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+
+    target_value       = 80.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 300
+  }
 }
 
 resource "aws_lb_target_group" "this" {
@@ -133,4 +169,3 @@ resource "aws_lb_listener_rule" "this" {
     }
   }
 }
-

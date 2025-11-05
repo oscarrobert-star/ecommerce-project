@@ -193,3 +193,6 @@ LOGGING = {
         },
     },
 }
+
+# --- Cross-Service Communication Settings ---
+PRODUCT_SERVICE_URL = os.environ.get("PRODUCT_SERVICE_URL", "http://product-service:8000/products")
