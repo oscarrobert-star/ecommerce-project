@@ -97,6 +97,7 @@ jobs:
     name: Deploy ${{ matrix.service }} to ECS
     needs: build
     runs-on: ubuntu-latest
+    if: needs.detect.outputs.matrix != '[]'
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect.outputs.matrix) }}
