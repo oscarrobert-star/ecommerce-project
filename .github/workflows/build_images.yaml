@@ -112,26 +112,38 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Check for existing ECS Task Definition (Graceful Exit)
-        id: check-td
+      - name: Check for existing ECS Service and get current Task Definition
+        id: check-ecs-service
         env:
-          TASK_DEFINITION_NAME: ${{ matrix.service }} 
+          SERVICE_NAME: ${{ matrix.service }}
         run: |
-          echo "Checking for existing task definition: $TASK_DEFINITION_NAME"
+          echo "Checking for ECS service: $SERVICE_NAME"
           
-          TASK_FAMILY_EXISTS=$(aws ecs list-task-definitions \
-            --family-prefix $TASK_DEFINITION_NAME \
-            --status ACTIVE \
+          # Check if the ECS service exists
+          SERVICE_EXISTS=$(aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER_NAME }} \
+            --services $SERVICE_NAME \
             --region ${{ env.AWS_REGION }} \
-            --max-items 1 \
-            | jq -r '.taskDefinitionArns | length')
+            --query 'services[0].status' \
+            --output text)
 
-          if [ "$TASK_FAMILY_EXISTS" -eq 0 ]; then
-            echo "::notice::ECS resources (Task Definition Family: $TASK_DEFINITION_NAME) not found. Exiting gracefully."
-            echo "ECS_RESOURCES_EXIST=false" >> $GITHUB_OUTPUT
+          if [ "$SERVICE_EXISTS" != "ACTIVE" ]; then
+            echo "::notice::ECS service $SERVICE_NAME not found or not active. Exiting gracefully."
+            echo "ECS_SERVICE_EXISTS=false" >> $GITHUB_OUTPUT
           else
-            echo "ECS Task Definition Family found."
-            echo "ECS_RESOURCES_EXIST=true" >> $GITHUB_OUTPUT
+            echo "ECS service found: $SERVICE_NAME"
+            
+            # Get the current task definition from the service
+            CURRENT_TASK_DEF=$(aws ecs describe-services \
+              --cluster ${{ env.ECS_CLUSTER_NAME }} \
+              --services $SERVICE_NAME \
+              --region ${{ env.AWS_REGION }} \
+              --query 'services[0].taskDefinition' \
+              --output text)
+            
+            echo "Current task definition: $CURRENT_TASK_DEF"
+            echo "CURRENT_TASK_DEF=$CURRENT_TASK_DEF" >> $GITHUB_OUTPUT
+            echo "ECS_SERVICE_EXISTS=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Get Image URI from Build Job
@@ -140,43 +152,63 @@ jobs:
           # Access the output from the specific build job for this service
           echo "IMAGE_FULL_URI=${{ needs.build.outputs['IMAGE_FULL_URI'] }}" >> $GITHUB_OUTPUT
 
-      - name: Deploy if ECS Resources Exist
-        if: steps.check-td.outputs.ECS_RESOURCES_EXIST == 'true'
+      - name: Deploy if ECS Service Exists
+        if: steps.check-ecs-service.outputs.ECS_SERVICE_EXISTS == 'true'
         run: |
-          TASK_DEFINITION_NAME=${{ matrix.service }}
+          SERVICE_NAME="${{ matrix.service }}"
           
           # The image URI is passed from the build job's output
           IMAGE_URI="${{ steps.get-image.outputs.IMAGE_FULL_URI }}"
+          CURRENT_TASK_DEF="${{ steps.check-ecs-service.outputs.CURRENT_TASK_DEF }}"
           
           echo "Using image: $IMAGE_URI"
+          echo "Current task definition: $CURRENT_TASK_DEF"
           
-          # 1. Get the latest active task definition ARN
-          TASK_DEF_ARN=$(aws ecs describe-task-definition --task-definition $TASK_DEFINITION_NAME --region ${{ env.AWS_REGION }} --query 'taskDefinition.taskDefinitionArn' --output text)
-
-          # 2. Render new task definition JSON with the new image URI
+          # 1. Get the full task definition details using the ARN from the service
+          echo "Getting current task definition details..."
           aws ecs describe-task-definition \
-            --task-definition $TASK_DEF_ARN \
+            --task-definition $CURRENT_TASK_DEF \
             --region ${{ env.AWS_REGION }} \
-            | jq --arg IMG_URI "$IMAGE_URI" \
-                 '.taskDefinition | .containerDefinitions |= map(if .name == "'$TASK_DEFINITION_NAME'" then .image = $IMG_URI else . end) | 
-                 del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes)' \
-            > rendered-task-definition.json
-
+            > current-task-definition.json
+          
+          # 2. Render new task definition JSON with the new image URI
+          echo "Updating task definition with new image..."
+          CONTAINER_NAME="${{ matrix.service }}"
+          
+          jq --arg IMG_URI "$IMAGE_URI" --arg CONTAINER "$CONTAINER_NAME" \
+            '.taskDefinition | 
+            .containerDefinitions |= map(if .name == $CONTAINER then .image = $IMG_URI else . end) | 
+            del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' \
+            current-task-definition.json > rendered-task-definition.json
+          
+          echo "Updated task definition:"
+          cat rendered-task-definition.json
+          
           # 3. Register New Task Definition
+          echo "Registering new task definition..."
           NEW_TD_ARN=$(aws ecs register-task-definition \
             --region ${{ env.AWS_REGION }} \
             --cli-input-json file://rendered-task-definition.json \
             | jq -r '.taskDefinition.taskDefinitionArn')
           
           echo "Registered new task definition: $NEW_TD_ARN"
-
+          
           # 4. Force ECS Service Deployment
-          echo "Updating ECS service: ${{ matrix.service }}-service"
+          echo "Updating ECS service: $SERVICE_NAME with new task definition: $NEW_TD_ARN"
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER_NAME }} \
-            --service ${{ matrix.service }}-service \
+            --service $SERVICE_NAME \
             --task-definition $NEW_TD_ARN \
             --force-new-deployment \
             --region ${{ env.AWS_REGION }}
-
+          
           echo "Deployment initiated successfully for ${{ matrix.service }}."
+          
+          # 5. Wait for service to stabilize (optional but recommended)
+          echo "Waiting for service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER_NAME }} \
+            --services $SERVICE_NAME \
+            --region ${{ env.AWS_REGION }}
+          
+          echo "Service deployment completed and stabilized."
