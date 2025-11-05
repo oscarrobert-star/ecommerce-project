@@ -364,3 +364,4 @@ def get_cart_ttl(request):
     except Exception as e:
         logger.exception(f"TTL: Failed to get cart TTL: {e}")
         return JsonResponse({'error': 'Internal server error.'}, status=500)
+

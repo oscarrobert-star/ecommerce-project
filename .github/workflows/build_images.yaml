@@ -116,6 +116,7 @@ jobs:
         id: check-ecs-service
         env:
           SERVICE_NAME: ${{ matrix.service }}
+          ECS_CLUSTER_NAME: ${{ env.ECS_CLUSTER_NAME }}
         run: |
           echo "Checking for ECS service: $SERVICE_NAME"
           
