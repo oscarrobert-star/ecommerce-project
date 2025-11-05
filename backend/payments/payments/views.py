@@ -71,7 +71,7 @@ def pay(request):
         logger.critical(f"Paystack API request failed for order {order_id}: {str(e)}", exc_info=True)
         return JsonResponse({"error": "Payment initialization failed via external API."}, status=500)
 
-
+@csrf_exempt
 def webhook(request):
     """
     Handles POST requests from Paystack webhooks to confirm payment status.
