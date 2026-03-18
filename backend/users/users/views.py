@@ -23,7 +23,7 @@ from .permissions import IsAdminUser
 logger = logging.getLogger(__name__)
 
 # ========================================================================
-# --- Custom Authentication Classes for Cookie-Based JWT ---
+#       --- Custom Authentication Classes for Cookie-Based JWT ---
 # ========================================================================
 
 class AuthenticatedUser:
